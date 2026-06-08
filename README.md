@@ -81,9 +81,12 @@ src/microphysics/       Step 2 scaling-law solver
   bvp.py                full eddy-diffusion BVP (master ODE as initial guess)
 src/rt/                 Step 1 DISORT energy balance (needs pydisort/.rtenv)
   column.py             layered column from an Atmosphere; heating-rate helper
-  optics.py             per-layer (tau, ssa, g): haze (Step 2) + gray-gas gas
-  disort_driver.py      pydisort wrapper: shortwave (beam) + longwave (Planck)
+  cia.py                HITRAN collision-induced absorption (N2-N2, N2-CH4, …)
+  optics.py             per-layer (tau, ssa, g): haze (Step 2) + CIA + gray SW gas
+  disort_driver.py      pydisort wrapper: shortwave beam + multiband longwave Planck
   energy_balance.py     SW heating, LW cooling, radiative-equilibrium relaxation
+data/cia/               band-averaged CIA table (raw HITRAN files gitignored)
+scripts/fetch_cia.py    download HITRAN CIA + (re)build the band table
 scripts/run_scaling_law.py   demo: integrate + plot the haze profiles
 scripts/cross_validate.py    validate against Tomasko/dT25 constraints
 scripts/run_energy_balance.py  demo: DISORT heating/cooling + equilibrium T(z)
@@ -139,9 +142,12 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 ## Status
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
-- [~] Step 1 — DISORT energy balance (`src/rt/`): two-band SW/LW via pydisort,
-      haze from Step 2, relaxes to a plausible T(z). **Gray-gas placeholder** for
-      CH₄+CIA — to be replaced with correlated-k; tight equilibrium pending that.
+- [~] Step 1 — DISORT energy balance (`src/rt/`) via pydisort: shortwave solar
+      beam + **multiband longwave with real HITRAN collision-induced absorption**
+      (N₂–N₂, N₂–CH₄, CH₄–CH₄, N₂–H₂), haze from Step 2. Relaxes to a Titan-like
+      T(z) (stratopause ~190 K, tropopause ~74 K, OLR ~4.4 W/m²). SW gas opacity
+      is still a gray CH₄ placeholder (correlated-k pending); tight equilibrium
+      awaits that.
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration

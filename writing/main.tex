@@ -148,42 +148,51 @@ Table~\ref{tab:params}.
 \label{sec:rt-impl}
 
 The solver is built on \texttt{pydisort} (a modern \texttt{torch}-based DISORT
-binding) in a two-band configuration: a collimated solar beam in the shortwave
-and a Planck thermal source in the longwave, with eight streams. Per layer the
-optical properties $(\tau,\omega_0,g)$ combine the haze---taken directly from the
-Step~2 microphysics via a geometric cross-section $Q_{\rm ext}\pi r_a^2$, with
-$\omega_0,g$ from the Huygens/DISR literature (scattering in the shortwave, a
-near-pure absorber in the IR)---and the gas. In this first cut the gas opacity is
-a deliberately simple \emph{gray} placeholder for the correlated-$k$ CH$_4$+CIA
-opacity described above: a shortwave (CH$_4$-like) component distributed by mass
-column, and a longwave component blending a CIA-like ($\propto n^2$) term with a
-line-like ($\propto$ mass) term so the low-density upper stratosphere retains
-emissivity. This is the principal approximation of the present model and the
-first target for replacement with real $k$-tables.
+binding) with eight streams: a collimated solar beam in the shortwave and a
+band-resolved Planck thermal source in the longwave. Per layer the optical
+properties combine the haze---taken directly from the Step~2 microphysics via a
+geometric cross-section $Q_{\rm ext}\pi r_a^2$, with $\omega_0,g$ from the
+Huygens/DISR literature (scattering in the shortwave, a near-pure absorber in
+the IR)---and the gas.
 
-On the Titan reference column the solver reproduces the qualitative budget:
+The longwave gas opacity is \emph{real collision-induced absorption}, the
+dominant thermal-IR continuum on Titan. We read the HITRAN CIA coefficients
+\citep{Karman2019} for the N$_2$--N$_2$, N$_2$--CH$_4$, CH$_4$--CH$_4$, and
+N$_2$--H$_2$ pairs, band-average them onto $\sim\!33$ far-IR bands
+($10$--$1000\,\mathrm{cm^{-1}}$, the range where CIA and the Planck function
+overlap at $70$--$200\,\mathrm{K}$), and form the per-layer optical depth
+$\tau(\nu)=\sum_{\rm pairs} k_{AB}(\nu,T)\,n_A n_B\,\Delta z$ from the pair
+number-density products. The N$_2$--N$_2$ roto-translational band makes the
+far-IR strongly opaque (column $\tau\!\gtrsim\!100$ near $50$--$100\,\mathrm{cm^{-1}}$,
+falling below unity beyond $\sim\!300\,\mathrm{cm^{-1}}$; Fig.~\ref{fig:ebal},
+right), which is the origin of Titan's pressure-induced greenhouse. The
+\emph{shortwave} gas opacity remains a simple gray CH$_4$-like placeholder
+(distributed by mass column), the one remaining approximation, to be replaced
+with correlated-$k$ methane coefficients.
+
+On the Titan reference column the solver reproduces the budget:
 $\sim\!\SI{2.8}{W.m^{-2}}$ of shortwave is absorbed, the outgoing longwave is
-$\sim\!\SI{5.6}{W.m^{-2}}$, and the bulk ($\lesssim150\,\mathrm{km}$)
-heating/cooling rates are of order Tomasko's (a few $\mathrm{K}$ per Titan day).
-Relaxing level temperatures along the net heating rate (per-level,
-under-relaxed, with the surface held fixed) cuts the bulk net-heating residual
-by roughly an order of magnitude and yields a recognizably Titan-like profile
-(Fig.~\ref{fig:ebal}): a cold tropopause near $70\,\mathrm{K}$ and a warm
-stratosphere ($\sim\!185$--$190\,\mathrm{K}$, somewhat warm versus the observed
-$\sim\!170$--$186\,\mathrm{K}$). The relaxation reaches a stable quasi-steady
-state rather than tight radiative equilibrium: with only two gray bands a
-shortwave-absorbing layer cannot always cool exactly locally, an artifact that
-spectral resolution (Step~1 refinement) is expected to remove. The machinery and
-the haze$\rightarrow$optics$\rightarrow$DISORT coupling are in place, which is
-what Step~3 requires.
+$\sim\!\SI{4.4}{W.m^{-2}}$, and the stratospheric cooling rates are of Tomasko
+order (a few $\mathrm{K}$ per Titan day). Relaxing level temperatures along the
+net heating rate (per-level, under-relaxed, surface held fixed) cuts the bulk
+net-heating residual by roughly an order of magnitude and yields a recognizably
+Titan-like profile (Fig.~\ref{fig:ebal}): a cold tropopause near
+$74\,\mathrm{K}$ and a warm stratopause near $190\,\mathrm{K}$ (cf.\ the observed
+$\sim\!186\,\mathrm{K}$). The relaxation reaches a stable quasi-steady state
+rather than tight radiative equilibrium---the gray shortwave deposition is
+concentrated too high, which spectral methane opacity should relieve---but the
+real CIA longwave and the haze$\rightarrow$optics$\rightarrow$DISORT coupling are
+in place, which is what Step~3 requires.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{figs/energy_balance.png}
-  \caption{Two-band DISORT energy balance on the Titan column with the Step~2
-    haze. Left: shortwave heating, longwave cooling, and net rate at the
-    relaxed state. Centre: net downward shortwave and longwave fluxes. Right:
-    initial-guess vs.\ radiative-equilibrium temperature (surface fixed).}
+  \caption{DISORT energy balance on the Titan column with the Step~2 haze and
+    HITRAN collision-induced absorption. From left: shortwave heating, longwave
+    cooling, and net rate at the relaxed state; net downward shortwave and
+    longwave fluxes; initial-guess vs.\ radiative-equilibrium temperature
+    (surface fixed); and the column CIA optical depth per pair, showing the
+    N$_2$--N$_2$ far-IR continuum that dominates the thermal opacity.}
   \label{fig:ebal}
 \end{figure}
 

@@ -67,22 +67,44 @@ def solve_shortwave(tau, ssa, g, fbeam, umu0, albedo=0.1, nstr=8):
     return _net_down(ds)[::-1].copy()       # back to ascending
 
 
-def solve_longwave(tau, ssa, g, T_levels_ascending, wave_lower=10.0,
-                   wave_upper=2000.0, albedo=0.0, nstr=8):
-    """Thermal DISORT solve with Planck source.
+def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
+                            albedo=0.0, nstr=8):
+    """Multi-band thermal DISORT solve with the Planck source.
 
-    ``T_levels_ascending`` are level temperatures (surface..top); the surface and
-    top temperatures set ``btemp``/``ttemp``.  Returns net downward flux at levels
-    (ascending); thermal **cooling** is the divergence of the net *upward* flux.
+    ``tau, ssa, g`` are (nband, nlyr) ascending-in-altitude.  Each band uses its
+    own ``[band_lo, band_hi]`` wavenumber limits for the band-integrated Planck
+    source.  Gas CIA and IR haze are pure absorbers, so ``ssa = g = 0`` and the
+    phase-function moments are left at zero (isotropic, irrelevant when ssa=0).
+    Returns the band-summed net downward flux at levels (ascending); thermal
+    cooling is the divergence of the net upward flux.
     """
-    ds = _build(tau.size, nstr, "onlyfl,lamber,planck",
-                wave_lower=wave_lower, wave_upper=wave_upper)
-    prop = _prop_tensor(tau, ssa, g, nstr)
-    T_td = np.asarray(T_levels_ascending, float)[::-1]   # top-down
+    tau = np.asarray(tau, float)
+    nband, nlyr = tau.shape
+    band_lo = np.asarray(band_lo, float)
+    band_hi = np.asarray(band_hi, float)
+
+    op = DisortOptions().flags("onlyfl,lamber,planck").nwave(nband).ncol(1)
+    op.ds().nlyr = nlyr
+    op.ds().nstr = nstr
+    op.ds().nmom = nstr
+    op.ds().nphase = nstr
+    op.wave_lower(band_lo)
+    op.wave_upper(band_hi)
+    ds = Disort(op)
+
+    nprop = 2 + nstr
+    prop = torch.zeros((nband, 1, nlyr, nprop))
+    prop[:, 0, :, 0] = torch.from_numpy(tau[:, ::-1].copy())          # top-down
+    prop[:, 0, :, 1] = torch.from_numpy(np.asarray(ssa, float)[:, ::-1].copy())
+
+    T_td = np.asarray(T_levels_ascending, float)[::-1]
     temf = torch.from_numpy(T_td.copy()).reshape(1, -1)
     ds.forward(prop, temf=temf,
                btemp=torch.tensor([float(T_levels_ascending[0])]),
                ttemp=torch.tensor([float(T_levels_ascending[-1])]),
-               temis=torch.tensor([[1.0]]),
-               albedo=torch.tensor([[float(albedo)]]))
-    return _net_down(ds)[::-1].copy()
+               temis=torch.ones((nband, 1)),
+               albedo=torch.full((nband, 1), float(albedo)))
+    f = ds.gather_flx()[:, 0].numpy()                 # (nband, nlvl, 8), top-down
+    net_td = (f[:, :, pydisort.kIRFLDIR] + f[:, :, pydisort.kIFLDN]
+              - f[:, :, pydisort.kIFLUP])
+    return net_td.sum(axis=0)[::-1].copy()            # band-summed, ascending

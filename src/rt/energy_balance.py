@@ -12,7 +12,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from .column import Column
-from .optics import OpticsParams, shortwave_optics, longwave_optics
+from .optics import OpticsParams, shortwave_optics, longwave_optics_spectral
+from .cia import CIABands, Composition
 from . import disort_driver as dd
 
 # Solar constant at Titan (~9.58 AU): 1361 / 9.58^2 W/m^2
@@ -38,19 +39,26 @@ class Fluxes:
 
 
 def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
-                   solar: SolarForcing | None = None, nstr: int = 8) -> Fluxes:
-    """Run both bands once and return fluxes + heating rates."""
+                   solar: SolarForcing | None = None, nstr: int = 8,
+                   cia: CIABands | None = None, comp: Composition | None = None) -> Fluxes:
+    """Run both bands once and return fluxes + heating rates.
+
+    The longwave is spectral, with collision-induced absorption (CIA) as the
+    explicit gas opacity (N2-N2, N2-CH4, CH4-CH4, N2-H2).
+    """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
+    cia = cia or CIABands()
 
     tau_sw, ssa_sw, g_sw = shortwave_optics(column, micro, op)
-    tau_lw, ssa_lw, g_lw = longwave_optics(column, micro, op)
+    tau_lw, ssa_lw, g_lw = longwave_optics_spectral(column, micro, cia, op, comp)
 
     sw_net = dd.solve_shortwave(tau_sw, ssa_sw, g_sw,
                                 fbeam=solar.fbeam, umu0=solar.umu0,
                                 albedo=solar.albedo, nstr=nstr)
-    lw_net = dd.solve_longwave(tau_lw, ssa_lw, g_lw,
-                               column.T, albedo=0.0, nstr=nstr)
+    lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, g_lw, column.T,
+                                        cia.band_lo, cia.band_hi, albedo=0.0,
+                                        nstr=nstr)
 
     # per-layer deposited energy = net-downward-flux convergence (ascending)
     sw_dF = np.diff(sw_net)
@@ -87,12 +95,13 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
+    cia = CIABands()                       # build the CIA table once
     T = column.T.copy()
     history = []
 
     for it in range(n_iter):
         col = Column(column.z, T, column.P, column.g)
-        fx = compute_fluxes(col, micro, op, solar, nstr=nstr)
+        fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia)
         h_lev = _layer_to_level(fx.net_heating, column.nlvl)   # K/Titan-day
         # residual measured in the resolved bulk (exclude the near-massless top)
         bulk = col.P_mid > 1.0         # Pa

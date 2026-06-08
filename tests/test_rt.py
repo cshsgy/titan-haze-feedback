@@ -14,6 +14,7 @@ import numpy as np
 
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
+from rt.cia import CIABands
 from rt.energy_balance import compute_fluxes, radiative_equilibrium
 
 
@@ -53,6 +54,26 @@ def test_outgoing_longwave_positive():
     fx = compute_fluxes(col, micro)
     olr = -fx.lw_net[-1]
     assert olr > 0, olr
+
+
+def test_cia_table_and_magnitude():
+    """CIA table loads and the N2-N2 coefficient matches HITRAN (~1e-44 cm^5/molec^2)."""
+    c = CIABands()
+    assert {"N2-N2", "N2-CH4", "CH4-CH4", "N2-H2"} <= set(c.pairs)
+    peak = c.pairs["N2-N2"].max()
+    assert 1e-45 < peak < 1e-43, peak     # HITRAN N2-N2 peak ~2.7e-44
+
+
+def test_cia_far_ir_optically_thick():
+    """N2-N2 makes the far-IR optically thick and the mid-IR thin (Titan greenhouse)."""
+    _, _, col = _setup()
+    c = CIABands()
+    coltau = c.optical_depth(col).sum(axis=1)          # per band, column
+    bc = 0.5 * (c.band_lo + c.band_hi)
+    tau_far = coltau[np.argmin(np.abs(bc - 100))]      # ~100 cm^-1
+    tau_mid = coltau[np.argmin(np.abs(bc - 400))]      # ~400 cm^-1
+    assert tau_far > 5.0, tau_far
+    assert tau_far > tau_mid
 
 
 def test_haze_raises_shortwave_albedo():

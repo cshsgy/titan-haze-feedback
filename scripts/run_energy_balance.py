@@ -23,7 +23,8 @@ import matplotlib.pyplot as plt
 
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
-from rt.energy_balance import compute_fluxes, radiative_equilibrium, SolarForcing, S0_TITAN
+from rt.cia import CIABands
+from rt.energy_balance import compute_fluxes, radiative_equilibrium, S0_TITAN
 
 
 def main():
@@ -46,7 +47,7 @@ def main():
     fxe = compute_fluxes(eq, micro)
 
     # --- figure ---
-    fig, ax = plt.subplots(1, 3, figsize=(14, 5.5))
+    fig, ax = plt.subplots(1, 4, figsize=(18, 5.5))
     zk = fx0.z_mid / 1e3
 
     ax[0].plot(fxe.sw_heating, zk, label="SW heating")
@@ -68,9 +69,32 @@ def main():
     ax[2].set_xlabel("temperature [K]")
     ax[2].set_title("temperature profile"); ax[2].legend()
 
-    for a in ax:
+    # CIA column optical depth per pair vs wavenumber
+    cia = CIABands()
+    bc = 0.5 * (cia.band_lo + cia.band_hi)
+    from microphysics.constants import K_B
+    from rt.cia import Composition
+    comp = Composition()
+    n_tot = (eq.P_mid / (K_B * eq.T_mid)) * 1e-6
+    dz_cm = eq.dz * 100.0
+    dens = {"N2-N2": (comp.x_N2 * n_tot) ** 2,
+            "N2-CH4": comp.x_N2 * n_tot * comp.x_CH4 * n_tot,
+            "CH4-CH4": (comp.x_CH4 * n_tot) ** 2,
+            "N2-H2": comp.x_N2 * n_tot * comp.x_H2 * n_tot}
+    for pair in ("N2-N2", "N2-CH4", "N2-H2", "CH4-CH4"):
+        k = cia._k_at_T(pair, eq.T_mid)                # (nband, nlyr)
+        coltau = (k * dens[pair][None, :] * dz_cm[None, :]).sum(axis=1)
+        ax[3].plot(bc, np.maximum(coltau, 1e-6), label=pair)
+    ax[3].set_yscale("log"); ax[3].set_ylim(1e-3, 1e3)
+    ax[3].set_xlabel("wavenumber [cm$^{-1}$]")
+    ax[3].set_ylabel("column CIA optical depth")
+    ax[3].set_title("collision-induced absorption"); ax[3].legend()
+    ax[3].grid(alpha=0.3)
+
+    for a in ax[:3]:
         a.grid(alpha=0.3); a.set_ylim(0, 450)
-    fig.suptitle("Titan 1-D DISORT energy balance (two-band, haze from Step 2 microphysics)")
+    fig.suptitle("Titan 1-D DISORT energy balance (shortwave gray gas + multiband CIA longwave; "
+                 "haze from Step 2 microphysics)")
     fig.tight_layout()
     out = ROOT / "writing" / "figs" / "energy_balance.png"
     out.parent.mkdir(parents=True, exist_ok=True)

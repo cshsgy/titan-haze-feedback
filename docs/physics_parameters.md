@@ -56,6 +56,7 @@ mid-latitudes 175–185 K near 50 Pa; equinox stratopause ~180 K (L23).
 | Gas opacity method | correlated-k from HITRAN (L23); DISR + Irwin 2006 CH₄ k (T08) | L23, T08 |
 | Line absorbers | CH₄, C₂H₆, C₂H₂, C₂H₄, C₃H₄, HCN | L23 |
 | CIA pairs (IR only) | N₂–N₂, N₂–CH₄, N₂–H₂, CH₄–CH₄ (negligible >600 cm⁻¹) | L23 |
+| CIA data (implemented) | HITRAN, band-averaged on ~33 far-IR bands → `src/rt/cia.py` | Karman 2019 |
 | N₂–CH₄ CIA scaling | ×1.50 (below 125 K) | T08 |
 
 **Haze optical structure / coupling:**

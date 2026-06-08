@@ -2,6 +2,10 @@
 .texenv/
 .rtenv/
 
+# Raw HITRAN CIA files (~13 MB; rebuild via scripts/fetch_cia.py).
+# The compact band-averaged table data/cia/titan_cia_bands.npz IS committed.
+data/cia/raw/
+
 # LaTeX build artifacts
 *.aux
 *.log
