@@ -170,22 +170,29 @@ right), which is the origin of Titan's pressure-induced greenhouse. The
 (distributed by mass column), the one remaining approximation, to be replaced
 with correlated-$k$ methane coefficients.
 
-On the Titan reference column the solver reproduces the budget:
-$\sim\!\SI{2.8}{W.m^{-2}}$ of shortwave is absorbed, the outgoing longwave is
-$\sim\!\SI{4.4}{W.m^{-2}}$, and the stratospheric cooling rates are of Tomasko
-order (a few $\mathrm{K}$ per Titan day). Relaxing the \emph{layer-mean}
-temperatures along the net heating rate (under-relaxed, surface held fixed; the
-layer-mean state is in 1:1 correspondence with the per-layer heating, avoiding
-the level$\leftrightarrow$layer aliasing that otherwise seeds a grid-scale
-zig-zag) cuts the bulk net-heating residual by over an order of magnitude
-($\sim\!12\,\mathrm{K}$ per Titan day) and yields a recognizably
-Titan-like profile (Fig.~\ref{fig:ebal}): a cold tropopause near
-$74\,\mathrm{K}$ and a warm stratopause near $190\,\mathrm{K}$ (cf.\ the observed
-$\sim\!186\,\mathrm{K}$). The relaxation reaches a stable quasi-steady state
-rather than tight radiative equilibrium---the gray shortwave deposition is
-concentrated too high, which spectral methane opacity should relieve---but the
-real CIA longwave and the haze$\rightarrow$optics$\rightarrow$DISORT coupling are
-in place, which is what Step~3 requires.
+We relax the \emph{layer-mean} temperature toward radiative--convective
+equilibrium: each iteration runs both bands, nudges the layer temperatures along
+the net heating rate (under-relaxed; the layer-mean state is in 1:1
+correspondence with the per-layer heating, avoiding the
+level$\leftrightarrow$layer aliasing that otherwise seeds a grid-scale zig-zag),
+then applies a convective adjustment to a critical lapse rate ($\sim\!1\,\mathrm{K\,km^{-1}}$).
+Cold space is imposed as the top boundary (a thermal emission temperature of
+$2.7\,\mathrm{K}$, not the atmosphere's top temperature); without this the
+column spuriously absorbs downwelling longwave and overheats.
+
+The solver reaches a genuine steady state: $\sim\!\SI{2.8}{W.m^{-2}}$ of
+shortwave is absorbed against $\sim\!\SI{2.9}{W.m^{-2}}$ of outgoing longwave
+(energy closed to $\sim\!0.1\,\mathrm{W\,m^{-2}}$), with a converged net-heating
+residual below $1\,\mathrm{K}$ per Titan day. The equilibrium profile
+(Fig.~\ref{fig:ebal}) is recognizably Titan-like---a stratopause near
+$110\,\mathrm{K}$ ($\sim\!300\,\mathrm{Pa}$), a cold tropopause near
+$74\,\mathrm{K}$, and a $\sim\!92\,\mathrm{K}$ surface---with the right vertical
+structure but a stratosphere $\sim\!80\,\mathrm{K}$ cooler than observed. That
+deficit is the signature of the gray shortwave gas: with full correlated-$k$
+methane the upper atmosphere would absorb more sunlight (Sec.~\ref{sec:rt-fortran}).
+The real-CIA longwave, energy closure, and the
+haze$\rightarrow$optics$\rightarrow$DISORT coupling are in place, which is what
+Step~3 requires.
 
 \begin{figure}[t]
   \centering
@@ -205,18 +212,23 @@ in place, which is what Step~3 requires.
 As an independent check we compare against a mature Fortran radiation model of
 the TAM lineage \citep[][the same scheme family as Lombardo \& Lora 2023]{Lombardo2023},
 a full correlated-$k$ treatment (CH$_4$, C$_2$H$_2$, C$_2$H$_6$, C$_2$H$_4$, HCN
-plus N$_2$--N$_2$/N$_2$--CH$_4$/CH$_4$--CH$_4$/N$_2$--H$_2$ CIA) with
-prescribed haze, run to radiative--convective equilibrium on a $100$-layer
-column. Figure~\ref{fig:fortran} overlays its temperature and heating/cooling
-profiles on ours. The two temperature structures agree closely---stratopause
-$\sim\!185$--$190\,\mathrm{K}$, cold tropopause $\sim\!70$--$75\,\mathrm{K}$,
-surface $\sim\!90\,\mathrm{K}$---despite our simplified gray shortwave gas; the
-residual differences are largest in the mid-stratosphere ($10^2$--$10^3\,\mathrm{Pa}$),
-where the reference model's spectral methane heating is stronger aloft (visible
-in the heating panel) than our mass-distributed gray placeholder. This supports
-the conclusion that the real-CIA longwave is the dominant control on the thermal
-structure and that the remaining gap is attributable to the shortwave gas
-treatment.
+plus N$_2$--N$_2$/N$_2$--CH$_4$/CH$_4$--CH$_4$/N$_2$--H$_2$ CIA) with prescribed
+haze, run to radiative--convective equilibrium on a $100$-layer column under
+diurnally-averaged insolation (the diurnal cycle disabled for faster
+convergence). Both models are at steady state.
+
+Figure~\ref{fig:fortran} overlays the two on a shared pressure coordinate. They
+share the same vertical \emph{structure}---a stratopause, a cold tropopause near
+$70$--$74\,\mathrm{K}$, and a $\sim\!90\,\mathrm{K}$ surface---but the reference
+model's stratopause is warmer ($\sim\!195\,\mathrm{K}$ vs.\ our
+$\sim\!110\,\mathrm{K}$). The heating panel shows why: the reference model's
+spectral methane absorbs substantially more sunlight in the stratosphere than our
+gray placeholder, so its shortwave heating (and hence stratospheric temperature)
+is larger. The close agreement on the longwave-controlled lower atmosphere, and
+the structural agreement throughout, indicate that the real-CIA longwave is the
+dominant control on the thermal structure and that the stratospheric temperature
+gap is attributable to the shortwave gas treatment---i.e.\ replacing the gray
+shortwave with correlated-$k$ methane is the priority upgrade.
 
 \begin{figure}[t]
   \centering

@@ -68,6 +68,42 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
     return Fluxes(column.z, sw_net, lw_net, sw_h, lw_h, sw_h + lw_h, column.z_mid)
 
 
+def convective_adjust(T_lyr, z_mid, dP, gamma_crit=1.0, T_surf=None, z_surf=0.0,
+                      n_sweep=60):
+    """Dry/critical-lapse convective adjustment of layer-mean temperatures.
+
+    Where the radiative lapse rate exceeds ``gamma_crit`` [K/km], relax that
+    region to a constant critical lapse rate, conserving column enthalpy
+    (mass-weighted, weight = dP).  ``gamma_crit`` represents the convective limit;
+    for Titan ~1 K/km (sub-dry-adiabatic, methane-moderated).  If ``T_surf`` is
+    given, the lowest layer is also checked against the surface.
+    """
+    T = np.asarray(T_lyr, float).copy()
+    z = np.asarray(z_mid, float) / 1e3        # km, ascending
+    w = np.asarray(dP, float)                  # mass weight per layer
+    n = T.size
+    for _ in range(n_sweep):
+        # surface-driven instability: warm the lowest layer toward the surface adiabat
+        if T_surf is not None:
+            t_adia = T_surf - gamma_crit * (z[0] - z_surf / 1e3)
+            if T[0] < t_adia - 1e-6:
+                T[0] = t_adia
+        # adjacent-pair instability: lapse between i (low) and i+1 (high) too steep
+        lapse = (T[:-1] - T[1:]) / (z[1:] - z[:-1])   # K/km, >0 = T drops w/ height
+        bad = np.where(lapse > gamma_crit + 1e-6)[0]
+        if bad.size == 0:
+            break
+        for i in bad:
+            # mix pair (i, i+1) to the critical lapse, conserving enthalpy
+            dz = z[i + 1] - z[i]
+            wi, wj = w[i], w[i + 1]
+            # T_i = a, T_{i+1} = a - gamma*dz ; conserve wi*T_i + wj*T_{i+1}
+            a = (wi * T[i] + wj * T[i + 1] + wj * gamma_crit * dz) / (wi + wj)
+            T[i] = a
+            T[i + 1] = a - gamma_crit * dz
+    return T
+
+
 def _levels_from_layers(column: Column, T_lyr, T_surf):
     """Reconstruct level temperatures from layer-mean temperatures.
 
@@ -83,27 +119,31 @@ def _levels_from_layers(column: Column, T_lyr, T_surf):
 
 def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
                           solar: SolarForcing | None = None, nstr: int = 8,
-                          n_iter: int = 500, dT_max: float = 1.0,
-                          dt_days: float = 0.01, relax: float = 0.15,
-                          fix_surface: bool = True, tol: float = 0.2,
+                          n_iter: int = 2000, dT_max: float = 2.0,
+                          dt_days: float = 0.02, relax: float = 0.2,
+                          gamma_crit: float = 1.0, convective: bool = True,
+                          fix_surface: bool = True, tol: float = 0.3,
                           verbose: bool = False):
-    """Relax toward radiative equilibrium in LAYER-mean temperature.
+    """Relax toward radiative-CONVECTIVE equilibrium in layer-mean temperature.
 
-    The state is the layer-mean temperature ``T_lyr`` (one value per layer), which
-    is in 1:1 correspondence with the per-layer net heating rate -- so the update
-    has no layer<->level aliasing and does not zig-zag.  Each iteration:
-    reconstruct level temperatures (for the Planck source), run both bands, and
-    nudge ``T_lyr`` along the net heating rate (under-relaxed, per-layer clipped at
-    ``dT_max``).  The surface temperature is held fixed.
+    The state is the layer-mean temperature ``T_lyr`` (1:1 with the per-layer net
+    heating rate, so no layer<->level aliasing / zig-zag).  Each iteration:
+    reconstruct level temperatures, run both bands, nudge ``T_lyr`` along the net
+    heating rate (under-relaxed, per-layer clipped at ``dT_max``), then apply
+    convective adjustment to a critical lapse rate ``gamma_crit`` [K/km].  Without
+    the convective step the pure-radiative steady state of this gray-shortwave
+    model is nearly isothermal; convection sets the troposphere.  The surface
+    temperature is held fixed.
 
-    Returns (column_eq, history) where history is max |net heating| in the
-    resolved bulk [K/Titan-day] per iteration.
+    ``tol`` is on the FULL net-heating residual (incl. the radiative top), so the
+    reported convergence reflects top-budget closure, not just the bulk.
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = CIABands()                       # build the CIA table once
     T_surf = column.T[0]
     T_lyr = column.T_mid.copy()            # layer-mean temperature is the state
+    z_mid, dP = column.z_mid, column.dP
     history = []
     col = column
 
@@ -111,18 +151,27 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
         T_lev = _levels_from_layers(column, T_lyr, T_surf)
         col = Column(column.z, T_lev, column.P, column.g)
         fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia)
-        # residual measured in the resolved bulk (exclude the near-massless top)
-        bulk = col.P_mid > 1.0         # Pa
-        resid = np.max(np.abs(fx.net_heating[bulk])) if bulk.any() else \
-            np.max(np.abs(fx.net_heating))
+        # residual on convectively-stable (radiative) layers -- convective layers
+        # are set by the adjustment, not by local radiative balance
+        if convective:
+            lapse = np.concatenate([[0.0],
+                     (T_lyr[:-1] - T_lyr[1:]) / (np.diff(z_mid) / 1e3)])
+            radiative = lapse < gamma_crit - 1e-3
+        else:
+            radiative = np.ones_like(T_lyr, dtype=bool)
+        resid = np.max(np.abs(fx.net_heating[radiative])) if radiative.any() \
+            else np.max(np.abs(fx.net_heating))
         history.append(resid)
-        if verbose and (it % 25 == 0 or it == n_iter - 1):
-            print(f"  iter {it:4d}  max|net heating|(bulk) = {resid:8.3f} K/Titan-day")
+        if verbose and (it % 100 == 0 or it == n_iter - 1):
+            print(f"  iter {it:4d}  max|net heating|(radiative) = {resid:8.3f} K/Titan-day")
         if resid < tol:
             break
-        # per-layer clipped, under-relaxed step (no level<->layer aliasing)
+        # per-layer clipped, under-relaxed radiative step
         dT = relax * np.clip(fx.net_heating * dt_days, -dT_max, dT_max)
         T_lyr = np.clip(T_lyr + dT, 40.0, 400.0)
+        # convective adjustment to the critical lapse rate
+        if convective:
+            T_lyr = convective_adjust(T_lyr, z_mid, dP, gamma_crit, T_surf=T_surf)
 
-    T_lev = _levels_from_layers(column, T_lyr, T_surf) if fix_surface else col.T
+    T_lev = _levels_from_layers(column, T_lyr, T_surf)
     return Column(column.z, T_lev, column.P, column.g), np.array(history)

@@ -21,7 +21,8 @@ write_cia_pair_diagnostics = .false.
 /
 
 &run_planetary_radiation_nml
-num_i           = 60      ! About 13.6 Earth years with the timestep below
+diurnal         = .false.    ! diurnally-averaged insolation
+num_i           = 2400      ! About 13.6 Earth years with the timestep below
 write_every     = 60        ! Save once per Titan day at fixed local time
 time_step       = 86130.     ! Exact 1/16 Titan day
 testing_lat     = 0.         ! Latitude

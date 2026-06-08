@@ -24,6 +24,8 @@ src/example_bowen_fort/tdt_lw.txt
 src/example_bowen_fort/heating_calc.txt
 src/example_bowen_fort/model_interp_ray.txt
 src/example_bowen_fort/trace_gases.txt
+src/example_bowen_fort/dist.txt
+src/example_bowen_fort/heating_calc.txt
 src/example_bowen_fort/tau_*.txt
 src/example_bowen_fort/dtau_*.txt
 src/example_bowen_fort/ssa_*.txt

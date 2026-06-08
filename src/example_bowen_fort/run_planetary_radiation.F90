@@ -32,6 +32,8 @@ PROGRAM RUN_PLANETARY_RADIATION
   real                            :: pi = 3.1415926535 ! Added by CK
   real                            :: testing_lat, init_t, total_time, arcsin, testing_ls, theta
   real                            :: hour_angle, declination ! Added by CK
+  real                            :: H0_day, diurnal_arg      ! diurnal-average insolation
+  logical                         :: diurnal = .false.        ! .false. = diurnally-averaged
   ! Planetary Parameters. Callable from namelist, defaults for Uranus (Added by CK on 6/26/24)
   real                            :: seconds_per_day = 62064.   ! [Uranus: 62064.  | Titan: 1375200.]
   real                            :: obliq = 97.77              ! [Uranus: 97.77   | Titan: 27]
@@ -100,6 +102,7 @@ PROGRAM RUN_PLANETARY_RADIATION
   real, dimension(nlay)           :: ch4_profile_q, ch4_profile_vmr
 
   namelist/run_planetary_radiation_nml/     num_i, write_every, time_step, testing_lat, testing_ls, init_t, low, &
+                                            diurnal, &
                                             seconds_per_day, obliq, grav, Rdgas, cp_air, albv, albi, &
                                             surface_flux_offset, use_bulk_surface_flux, surface_wind_speed, &
                                             surface_drag_coeff, surface_relative_humidity, &
@@ -307,9 +310,25 @@ PROGRAM RUN_PLANETARY_RADIATION
     !---------------------
     ! Solar zenith angle
     !---------------------
-    hour_angle = 2*pi*total_time / seconds_per_day
     declination = obliq*pi/180.*real(testing_ls)
-    cosz = COS(testing_lat*pi/180.)*COS(declination)*COS(hour_angle) + SIN(declination)*SIN(testing_lat*pi/180.)
+    if (diurnal) then
+       ! instantaneous (resolves the diurnal cycle; needs sub-day timestep)
+       hour_angle = 2*pi*total_time / seconds_per_day
+       cosz = COS(testing_lat*pi/180.)*COS(declination)*COS(hour_angle) + SIN(declination)*SIN(testing_lat*pi/180.)
+    else
+       ! diurnally-AVERAGED insolation factor (constant) -- allows a full-day
+       ! timestep and faster convergence to steady state
+       diurnal_arg = -TAN(testing_lat*pi/180.)*TAN(declination)
+       if (diurnal_arg >= 1.0) then
+          H0_day = 0.0                       ! polar night
+       else if (diurnal_arg <= -1.0) then
+          H0_day = pi                        ! polar day
+       else
+          H0_day = ACOS(diurnal_arg)
+       end if
+       cosz = (1.0/pi)*( H0_day*SIN(testing_lat*pi/180.)*SIN(declination) &
+                       + COS(testing_lat*pi/180.)*COS(declination)*SIN(H0_day) )
+    end if
         
     call planetary_radiation(is, js, lat, lon, testing_ls, cosz, phalf, pfull, zhalf, zfull, albedov, albedoi, &
     t_surf, t, tracers, tdt, tdt_sw, tdt_lw, sfc_flux, lw_spec, sw_spec)

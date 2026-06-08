@@ -99,10 +99,12 @@ def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
 
     T_td = np.asarray(T_levels_ascending, float)[::-1]
     temf = torch.from_numpy(T_td.copy()).reshape(1, -1)
+    # Top boundary = cold space: emit at ~0 K (no spurious downwelling thermal).
+    # btemp = surface temperature; the atmosphere radiates upward to space.
     ds.forward(prop, temf=temf,
                btemp=torch.tensor([float(T_levels_ascending[0])]),
-               ttemp=torch.tensor([float(T_levels_ascending[-1])]),
-               temis=torch.ones((nband, 1)),
+               ttemp=torch.tensor([2.7]),
+               temis=torch.zeros((nband, 1)),
                albedo=torch.full((nband, 1), float(albedo)))
     f = ds.gather_flx()[:, 0].numpy()                 # (nband, nlvl, 8), top-down
     net_td = (f[:, :, pydisort.kIRFLDIR] + f[:, :, pydisort.kIFLDN]
