@@ -55,6 +55,8 @@ def layer_haze_tau(column, micro, p: OpticsParams):
     zz = micro.z[order]
     n = np.interp(zc, zz, micro.n[order])
     r_a = np.interp(zc, zz, micro.r_a[order])
+    # no haze above the microphysics domain (avoid flat-extrapolating the top)
+    n = np.where(zc > zz[-1], 0.0, n)
     kext = haze_extinction_per_length(n, r_a, p)
     return kext * column.dz
 

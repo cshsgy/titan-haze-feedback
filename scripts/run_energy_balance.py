@@ -30,7 +30,7 @@ from rt.energy_balance import compute_fluxes, radiative_equilibrium, S0_TITAN
 def main():
     atm = Atmosphere.titan_reference()
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
-    col = Column.from_atmosphere(atm, nlyr=40, z_top=450e3)
+    col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
 
     fx0 = compute_fluxes(col, micro)
     print(f"Solar constant at Titan: {S0_TITAN:.2f} W/m^2")

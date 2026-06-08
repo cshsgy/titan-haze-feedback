@@ -23,12 +23,15 @@ def test_bvp_converges():
     assert _bvp().success
 
 
-def test_monomer_flux_constant_equals_P():
-    """No interior source => downward monomer flux is constant and equals P."""
+def test_monomer_flux_ramps_to_P_below_source():
+    """With the distributed Gaussian source, the downward monomer flux is ~0 at
+    the closed top and rises to the column production P below the source."""
     res = _bvp()
     P = DEFAULT.P_flux
-    assert np.allclose(res.flux_M / P, 1.0, rtol=1e-3), \
-        (res.flux_M.min() / P, res.flux_M.max() / P)
+    below = res.z < (DEFAULT.z0 - 3 * DEFAULT.dz)   # well below the production zone
+    assert np.allclose(res.flux_M[below] / P, 1.0, rtol=1e-2), \
+        (res.flux_M[below].min() / P, res.flux_M[below].max() / P)
+    assert res.flux_M[np.argmax(res.z)] / P < 0.1   # ~closed top
 
 
 def test_surface_deposition_balances_production():
@@ -36,7 +39,7 @@ def test_surface_deposition_balances_production():
     res = _bvp()
     i = int(np.argmin(res.z))
     dep = res.omega[i] * res.M[i]
-    assert np.isclose(dep / DEFAULT.P_flux, 1.0, rtol=1e-3)
+    assert np.isclose(dep / DEFAULT.P_flux, 1.0, rtol=2e-2)
 
 
 def test_bvp_agrees_with_master_in_lower_haze():

@@ -226,15 +226,16 @@ optics → `Δτ, ω₀, g` → DISORT → new `T(z)`, iterate to a fixed point.
 - ✅ **Seed / sub-monomer phase:** carry the spherical phase explicitly — `D=3`
   for `N̄<1`, switching to fractal `D` at `N̄=1` (§1–§2). Seed at `N̄=N_seed=(r_p/d)³`.
 - ✅ **Eddy diffusion:** included — the full §3 BVP is solved in
-  `src/microphysics/bvp.py` (production imposed as a top flux BC at `z₀`, closed
-  by settling-only deposition at the surface); eq. (5) is the `K→0` initial
-  guess (`scaling_law.py`).
+  `src/microphysics/bvp.py` over `[0, z₀+3Δz]` with the **distributed Gaussian
+  production as an interior source** (closed top, settling-only deposition at the
+  surface). This avoids the sharp top-boundary number spike of an
+  all-at-the-boundary flux BC; eq. (5) is the `K→0` initial guess.
 - ⏸ **Charge inhibition:** deferred. Add the `Q̄` factor (BR17 Eq. 27,
   `n_e≈15 e⁻/µm`) as a multiplier on `β` once the base loop closes.
 
 **Cross-validation (implemented, `scripts/cross_validate.py`).** On the crude
 Titan reference column the BVP reproduces the Tomasko (2008) haze extinction
-scale height (**62 km** vs. 65 km observed; the `K→0` limit gives 54 km) and a
+scale height (**64 km** vs. 65 km observed; the `K→0` limit gives 54 km) and a
 main-haze characteristic radius of **~0.3–0.5 µm** (cf. dT25 `r_c≈0.46 µm`).
 Monomer mass flux is conserved to machine precision; the BVP and master ODE
 agree to ~9% in the settling-dominated lower haze. The extinction scale height

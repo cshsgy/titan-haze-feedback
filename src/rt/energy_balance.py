@@ -68,41 +68,49 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
     return Fluxes(column.z, sw_net, lw_net, sw_h, lw_h, sw_h + lw_h, column.z_mid)
 
 
-def _layer_to_level(h_layer, nlvl):
-    """Average per-layer rates onto levels (endpoints take the adjacent layer)."""
-    h = np.empty(nlvl)
-    h[1:-1] = 0.5 * (h_layer[1:] + h_layer[:-1])
-    h[0] = h_layer[0]
-    h[-1] = h_layer[-1]
-    return h
+def _levels_from_layers(column: Column, T_lyr, T_surf):
+    """Reconstruct level temperatures from layer-mean temperatures.
+
+    Monotonic interpolation of the layer-centred temperatures (at z_mid) onto the
+    levels (at z), with the surface level pinned to ``T_surf``.  Because this map
+    is interpolation (smoothing), not layer<->level aliasing, it does not seed the
+    checkerboard mode that a layer->level->layer round trip does.
+    """
+    T_lev = np.interp(column.z, column.z_mid, T_lyr)
+    T_lev[0] = T_surf
+    return T_lev
 
 
 def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
                           solar: SolarForcing | None = None, nstr: int = 8,
                           n_iter: int = 500, dT_max: float = 1.0,
-                          dt_days: float = 0.015, relax: float = 0.2,
+                          dt_days: float = 0.01, relax: float = 0.15,
                           fix_surface: bool = True, tol: float = 0.2,
                           verbose: bool = False):
-    """Relax level temperatures toward radiative equilibrium.
+    """Relax toward radiative equilibrium in LAYER-mean temperature.
 
-    Explicit pseudo-time relaxation: each step computes the net per-layer heating
-    rate and nudges level temperatures along it, with an adaptive step capped so
-    the largest temperature change is ``dT_max`` per iteration.  The surface
-    temperature is held fixed (lower boundary) by default.
+    The state is the layer-mean temperature ``T_lyr`` (one value per layer), which
+    is in 1:1 correspondence with the per-layer net heating rate -- so the update
+    has no layer<->level aliasing and does not zig-zag.  Each iteration:
+    reconstruct level temperatures (for the Planck source), run both bands, and
+    nudge ``T_lyr`` along the net heating rate (under-relaxed, per-layer clipped at
+    ``dT_max``).  The surface temperature is held fixed.
 
-    Returns (column_eq, history) where history is the max |net heating| [K/day]
-    per iteration.
+    Returns (column_eq, history) where history is max |net heating| in the
+    resolved bulk [K/Titan-day] per iteration.
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = CIABands()                       # build the CIA table once
-    T = column.T.copy()
+    T_surf = column.T[0]
+    T_lyr = column.T_mid.copy()            # layer-mean temperature is the state
     history = []
+    col = column
 
     for it in range(n_iter):
-        col = Column(column.z, T, column.P, column.g)
+        T_lev = _levels_from_layers(column, T_lyr, T_surf)
+        col = Column(column.z, T_lev, column.P, column.g)
         fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia)
-        h_lev = _layer_to_level(fx.net_heating, column.nlvl)   # K/Titan-day
         # residual measured in the resolved bulk (exclude the near-massless top)
         bulk = col.P_mid > 1.0         # Pa
         resid = np.max(np.abs(fx.net_heating[bulk])) if bulk.any() else \
@@ -112,14 +120,9 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
             print(f"  iter {it:4d}  max|net heating|(bulk) = {resid:8.3f} K/Titan-day")
         if resid < tol:
             break
-        # PER-LEVEL clipped, under-relaxed pseudo-time step: each level relaxes on
-        # its own rate (capped at dT_max so the stiff top cannot throttle the
-        # bulk), then a light 3-point smooth damps grid-scale (checkerboard) modes.
-        dT = relax * np.clip(h_lev * dt_days, -dT_max, dT_max)
-        dT[1:-1] = 0.25 * dT[:-2] + 0.5 * dT[1:-1] + 0.25 * dT[2:]
-        T = T + dT
-        if fix_surface:
-            T[0] = column.T[0]
-        T = np.clip(T, 40.0, 400.0)
+        # per-layer clipped, under-relaxed step (no level<->layer aliasing)
+        dT = relax * np.clip(fx.net_heating * dt_days, -dT_max, dT_max)
+        T_lyr = np.clip(T_lyr + dT, 40.0, 400.0)
 
-    return Column(column.z, T, column.P, column.g), np.array(history)
+    T_lev = _levels_from_layers(column, T_lyr, T_surf) if fix_surface else col.T
+    return Column(column.z, T_lev, column.P, column.g), np.array(history)

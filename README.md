@@ -120,7 +120,7 @@ python3 scripts/cross_validate.py      # BVP + validation -> writing/figs/
 
 **Cross-validation (vs. published Titan constraints).** The eddy-diffusion BVP
 reproduces the haze extinction scale height of Tomasko et al. (2008),
-**H = 62 km vs. 65 km observed** (the K→0 settling limit alone gives 54 km), and
+**H = 64 km vs. 65 km observed** (the K→0 settling limit alone gives 54 km), and
 a main-haze characteristic radius of **~0.3–0.5 µm**, matching de Trenquelléon
 et al. (2025) (r_c ≈ 0.46 µm). Monomer mass flux is conserved to machine
 precision and the BVP agrees with the master ODE to ~9% in the lower haze.

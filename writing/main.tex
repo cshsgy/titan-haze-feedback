@@ -54,7 +54,7 @@ whose asymptotic solutions grow as $\Nbar\propto(\text{depth})^{2}$ in the
 free-molecular upper haze and $\Nbar\propto(\text{depth})^{1/2}$ in the
 continuum lower atmosphere. Solving the full eddy-diffusion problem reproduces
 the haze extinction scale height of Tomasko et al. (2008)
-($62$ vs.\ $65\,\mathrm{km}$) and a sub-micron characteristic radius consistent
+($64$ vs.\ $65\,\mathrm{km}$) and a sub-micron characteristic radius consistent
 with de Trenquell\'eon et al. (2025). This law is inexpensive enough to embed
 inside the radiative iteration, closing the feedback loop.
 \end{abstract}
@@ -173,9 +173,12 @@ with correlated-$k$ methane coefficients.
 On the Titan reference column the solver reproduces the budget:
 $\sim\!\SI{2.8}{W.m^{-2}}$ of shortwave is absorbed, the outgoing longwave is
 $\sim\!\SI{4.4}{W.m^{-2}}$, and the stratospheric cooling rates are of Tomasko
-order (a few $\mathrm{K}$ per Titan day). Relaxing level temperatures along the
-net heating rate (per-level, under-relaxed, surface held fixed) cuts the bulk
-net-heating residual by roughly an order of magnitude and yields a recognizably
+order (a few $\mathrm{K}$ per Titan day). Relaxing the \emph{layer-mean}
+temperatures along the net heating rate (under-relaxed, surface held fixed; the
+layer-mean state is in 1:1 correspondence with the per-layer heating, avoiding
+the level$\leftrightarrow$layer aliasing that otherwise seeds a grid-scale
+zig-zag) cuts the bulk net-heating residual by over an order of magnitude
+($\sim\!12\,\mathrm{K}$ per Titan day) and yields a recognizably
 Titan-like profile (Fig.~\ref{fig:ebal}): a cold tropopause near
 $74\,\mathrm{K}$ and a warm stratopause near $190\,\mathrm{K}$ (cf.\ the observed
 $\sim\!186\,\mathrm{K}$). The relaxation reaches a stable quasi-steady state
@@ -409,7 +412,7 @@ haze, as expected in Titan's stratosphere.
 
 We cross-validate the resulting profile against two published constraints
 (Fig.~\ref{fig:validation}). First, the haze extinction scale height: fitting
-$n\,r_a^2$ over $80$--$300\,\mathrm{km}$ yields $H=\SI{62}{km}$, against the
+$n\,r_a^2$ over $80$--$300\,\mathrm{km}$ yields $H=\SI{64}{km}$, against the
 $\SI{65}{km}$ inferred by \citet{Tomasko2008heat}; the $K\to0$ settling limit
 alone gives $\SI{54}{km}$, so the modest eddy diffusion brings the model into
 close agreement. Second, the characteristic size: the mass radius is
