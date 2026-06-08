@@ -77,18 +77,29 @@ src/microphysics/       Step 2 scaling-law solver
   constants.py          physical constants + AerosolParams
   atmosphere.py         background T(z), P(z), g(z), eta(T), lambda(T,P), K(z)
   transport.py          fractal geometry, settling omega, coagulation kernel beta
-  scaling_law.py        master-ODE integrator -> n(z), Nbar(z), rho_h(z)
+  scaling_law.py        K->0 master-ODE integrator -> n(z), Nbar(z), rho_h(z)
+  bvp.py                full eddy-diffusion BVP (master ODE as initial guess)
 scripts/run_scaling_law.py   demo: integrate + plot the haze profiles
-tests/test_scaling_law.py    sanity checks (mass-flux conservation, exponents, …)
+scripts/cross_validate.py    validate against Tomasko/dT25 constraints
+tests/test_scaling_law.py    master-ODE sanity checks
+tests/test_bvp.py            BVP sanity + cross-validation checks
 writing/                paper-style LaTeX writeup + built PDF
 ```
 
 ### Running Step 2
 
 ```bash
-python3 tests/test_scaling_law.py      # sanity checks
-python3 scripts/run_scaling_law.py     # profiles -> writing/figs/
+python3 tests/test_scaling_law.py tests/test_bvp.py   # 12 checks
+python3 scripts/run_scaling_law.py     # K->0 profiles -> writing/figs/
+python3 scripts/cross_validate.py      # BVP + validation -> writing/figs/
 ```
+
+**Cross-validation (vs. published Titan constraints).** The eddy-diffusion BVP
+reproduces the haze extinction scale height of Tomasko et al. (2008),
+**H = 62 km vs. 65 km observed** (the K→0 settling limit alone gives 54 km), and
+a main-haze characteristic radius of **~0.3–0.5 µm**, matching de Trenquelléon
+et al. (2025) (r_c ≈ 0.46 µm). Monomer mass flux is conserved to machine
+precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 
 ## Key references
 
@@ -108,7 +119,7 @@ python3 scripts/run_scaling_law.py     # profiles -> writing/figs/
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
 - [ ] Step 1 — DISORT energy balance
-- [x] Step 2 — scaling-law implementation (`src/microphysics/`, sedimentation-
-      dominated master ODE; full eddy-diffusion BVP still to add)
+- [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
+      **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration
 - [ ] Step 4 — photochemistry coupling

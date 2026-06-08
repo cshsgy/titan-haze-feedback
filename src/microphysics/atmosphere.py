@@ -44,15 +44,19 @@ def mean_free_path(T: np.ndarray | float, P: np.ndarray | float) -> np.ndarray |
     return C.K_B * T / (np.sqrt(2.0) * np.pi * C.D_GAS**2 * P)
 
 
-def eddy_diffusivity(z: np.ndarray | float) -> np.ndarray | float:
-    """Eddy diffusion coefficient K(z) [m^2/s] (placeholder Titan profile).
+def eddy_diffusivity(z: np.ndarray | float, K0: float = 1.0,
+                     H_K: float = 150e3) -> np.ndarray | float:
+    """Eddy diffusion coefficient K(z) [m^2/s] (Titan-like profile).
 
-    Small in the lower stratosphere, rising steeply toward the homopause.  Order
-    of magnitude only; replace with a Vuitton (2019)-type profile when needed.
+    On Titan the stratospheric eddy diffusivity is small, ~1 m^2/s
+    (~1e4 cm^2/s), and stays small up through the stratosphere, climbing
+    steeply only toward the homopause (~1e4 m^2/s ~ 1e8 cm^2/s near 1000 km,
+    well above this model's 0-415 km domain).  Here K = K0 exp(z / H_K) with a
+    long scale height keeps K modest across the haze (~16 m^2/s at 415 km).
+    This profile is an uncertain input (cf. Vuitton 2019); exposed for tuning.
     """
     z = np.asarray(z, dtype=float)
-    # ~4e2 m^2/s low down, ramping to ~1e5 m^2/s above ~500 km
-    return 4.0e2 * np.exp(z / 90e3)
+    return K0 * np.exp(z / H_K)
 
 
 class Atmosphere:

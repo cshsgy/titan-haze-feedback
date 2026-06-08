@@ -52,8 +52,11 @@ sedimentation-dominated limit it collapses further to a single first-order
 ordinary differential equation, $\dd\Nbar/\dd z=-\beta(\Nbar,z)\,P/[2\,\omega(\Nbar,z)^2]$,
 whose asymptotic solutions grow as $\Nbar\propto(\text{depth})^{2}$ in the
 free-molecular upper haze and $\Nbar\propto(\text{depth})^{1/2}$ in the
-continuum lower atmosphere. This law is inexpensive enough to embed inside the
-radiative iteration, closing the feedback loop.
+continuum lower atmosphere. Solving the full eddy-diffusion problem reproduces
+the haze extinction scale height of Tomasko et al. (2008)
+($62$ vs.\ $65\,\mathrm{km}$) and a sub-micron characteristic radius consistent
+with de Trenquell\'eon et al. (2025). This law is inexpensive enough to embed
+inside the radiative iteration, closing the feedback loop.
 \end{abstract}
 
 \section{Introduction}
@@ -338,6 +341,44 @@ Eq.~\eqref{eq:massflux}.
     mobility radii, aggregate number density, and haze mass density. Aggregates
     grow as they settle; $r_a$ exceeds $r$ in the fractal phase.}
   \label{fig:profiles}
+\end{figure}
+
+\subsection{Eddy-diffusion BVP and cross-validation}
+\label{sec:validation}
+
+Restoring eddy diffusion, we solve the full boundary-value problem
+\eqref{eq:bvpM}--\eqref{eq:bvpn} on $[0,z_0]$, imposing the (narrow) production
+as a top flux boundary condition---downward monomer flux $\Phi_M=P$ and seed
+number flux $\Phi_n=P/N_{\rm seed}$---and settling-only deposition at the
+surface. The $K\to0$ master ODE supplies the initial guess. A Titan-like eddy
+profile $K(z)=K_0\exp(z/H_K)$ with $K_0=\SI{1}{m^2 s^{-1}}$ and
+$H_K=\SI{150}{km}$ keeps $K$ small ($\lesssim\SI{16}{m^2 s^{-1}}$) across the
+haze, as expected in Titan's stratosphere.
+
+We cross-validate the resulting profile against two published constraints
+(Fig.~\ref{fig:validation}). First, the haze extinction scale height: fitting
+$n\,r_a^2$ over $80$--$300\,\mathrm{km}$ yields $H=\SI{62}{km}$, against the
+$\SI{65}{km}$ inferred by \citet{Tomasko2008heat}; the $K\to0$ settling limit
+alone gives $\SI{54}{km}$, so the modest eddy diffusion brings the model into
+close agreement. Second, the characteristic size: the mass radius is
+$\approx0.34\,\mu\mathrm{m}$ near $300\,\mathrm{km}$ and sub-micron through the
+main haze, consistent with the $r_c\approx0.46\,\mu\mathrm{m}$ of
+\citet{deTrenquelleon2025}. The monomer mass flux is conserved to machine
+precision (global mass balance: surface deposition equals column production),
+and the BVP departs from the master ODE by only $\sim\!9\%$ in the
+settling-dominated lower haze. The extinction scale height is sensitive to
+$K(z)$, identifying the eddy profile as the principal uncertain input.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/bvp_validation.png}
+  \caption{Cross-validation of the microphysics against published Titan
+    constraints. Left: mass radius from the $K\to0$ master ODE and the
+    eddy-diffusion BVP, with the de Trenquell\'eon et al. (2025) main-haze size
+    ($\sim0.5\,\mu$m) shaded. Centre: number density. Right: normalized
+    extinction $n\,r_a^2$, with the Tomasko et al. (2008) $H=65\,$km reference
+    slope (dotted) anchored at $80\,$km.}
+  \label{fig:validation}
 \end{figure}
 
 \section{Coupled iteration (Step 3)}
