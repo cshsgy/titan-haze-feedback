@@ -199,6 +199,35 @@ in place, which is what Step~3 requires.
   \label{fig:ebal}
 \end{figure}
 
+\subsection{Cross-comparison with a reference radiation model}
+\label{sec:rt-fortran}
+
+As an independent check we compare against a mature Fortran radiation model of
+the TAM lineage \citep[][the same scheme family as Lombardo \& Lora 2023]{Lombardo2023},
+a full correlated-$k$ treatment (CH$_4$, C$_2$H$_2$, C$_2$H$_6$, C$_2$H$_4$, HCN
+plus N$_2$--N$_2$/N$_2$--CH$_4$/CH$_4$--CH$_4$/N$_2$--H$_2$ CIA) with
+prescribed haze, run to radiative--convective equilibrium on a $100$-layer
+column. Figure~\ref{fig:fortran} overlays its temperature and heating/cooling
+profiles on ours. The two temperature structures agree closely---stratopause
+$\sim\!185$--$190\,\mathrm{K}$, cold tropopause $\sim\!70$--$75\,\mathrm{K}$,
+surface $\sim\!90\,\mathrm{K}$---despite our simplified gray shortwave gas; the
+residual differences are largest in the mid-stratosphere ($10^2$--$10^3\,\mathrm{Pa}$),
+where the reference model's spectral methane heating is stronger aloft (visible
+in the heating panel) than our mass-distributed gray placeholder. This supports
+the conclusion that the real-CIA longwave is the dominant control on the thermal
+structure and that the remaining gap is attributable to the shortwave gas
+treatment.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/fortran_comparison.png}
+  \caption{This work (DISORT, red/blue/orange) versus a reference TAM-lineage
+    correlated-$k$ Fortran model (black) on a shared pressure coordinate. Left:
+    temperature. Right: shortwave heating and longwave cooling. The temperature
+    profiles agree to within a few kelvin through most of the column.}
+  \label{fig:fortran}
+\end{figure}
+
 \section{Microphysical scaling law (Step 2)}
 \label{sec:scaling}
 
