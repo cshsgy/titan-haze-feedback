@@ -1,0 +1,21 @@
+# Source reference PDFs (copyrighted journal articles) — kept local, not pushed
+papers/
+
+# LaTeX toolchain env (installed locally, not committed)
+.texenv/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

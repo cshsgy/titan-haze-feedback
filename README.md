@@ -1,1 +1,99 @@
 # titan-haze-feedback
+
+A coupled radiative–microphysical model of Titan's organic haze. The goal is to
+close the loop between the **radiative energy balance** (which sets the
+temperature profile) and the **aerosol microphysics** (coagulation +
+sedimentation of fractal aggregates, which sets the haze density/size profile,
+which in turn sets the opacity that drives the radiation).
+
+## Scientific motivation
+
+On Titan the haze is not a passive tracer: it absorbs sunlight (heating the
+stratosphere), emits in the thermal IR (cooling), and its vertical/size
+structure is controlled by microphysics that is itself temperature dependent
+(gas viscosity η(T), mean free path λ(T,P), thermal velocity, Brownian kernel
+∝ T/η). This is a genuine **feedback loop**, and most existing models either
+prescribe the haze (Tomasko 2008, Lombardo 2023) or run full 3D microphysics in
+a GCM (de Trenquelléon 2025). This project isolates the 1D radiative ↔
+microphysics feedback with a fast, analytic **scaling law** for the
+microphysics so the loop can be iterated cheaply to a self-consistent steady
+state.
+
+## Project plan
+
+### Step 1 — Radiative-transfer energy balance (DISORT)
+Build a 1D plane-parallel column for Titan and solve the shortwave + longwave
+radiative transfer with **DISORT** (discrete ordinates, multi-stream).
+- Shortwave: solar absorption by CH₄ + haze; Lombardo splits at 5 µm
+  (2000–40000 cm⁻¹). Haze scattering with single-scattering albedo ω₀ and
+  asymmetry g.
+- Longwave: thermal cooling, gas line opacity + N₂–N₂/N₂–CH₄/CH₄–CH₄/N₂–H₂ CIA;
+  haze treated as a (near-)pure absorber in the IR.
+- Gas opacity via correlated-k (HITRAN) or DISR/Irwin CH₄ coefficients.
+- Iterate heating = cooling to **radiative(-convective) equilibrium** → T(z).
+- **Validation target:** Tomasko (2008) net-flux and heating/cooling tables
+  (solar net flux 0.574 W/m² at surface, ~4.1 W/m² at 400 km; net heating peak
+  ~0.5 K/Titan-day near 120 km; cooling peak ~21 K/Titan-day near 340 km).
+
+### Step 2 — Microphysics scaling law
+Derive a closed analytic relation for the aerosol population — coagulation of
+fractal aggregates + gravitational sedimentation → steady-state density/size
+profile. Target form:
+
+> **C(z,N) dz dN = f(z, N, T, d, D)**
+
+where `C(z,N)` is the concentration of aggregates containing `N` monomers at
+altitude `z`, `T` = temperature, `d` = monomer radius, `D` = fractal dimension.
+The full derivation (settling velocity, Brownian kernel, Smoluchowski balance,
+all in (z,N) coordinates with explicit T/d/D dependence) lives in
+[`docs/scaling_law.md`](docs/scaling_law.md). The physical building blocks are
+taken from Burgalat & Rannou (2017) and de Trenquelléon (2025).
+
+### Step 3 — Coupled radiative–microphysical iteration
+Close the loop:
+1. Start from a guess T(z).
+2. Microphysics scaling law (Step 2) → C(z,N) → mass/number/size profiles.
+3. Map (M0, M3 → characteristic radius per layer) to optical properties
+   (Qext, ω₀, g) via a precomputed aggregate optics table → layer optical depths.
+4. DISORT (Step 1) → new heating/cooling → new T(z).
+5. Repeat to a fixed point. Diagnose the **feedback** sign/strength
+   (e.g. dT/d(opacity), gain factor) and stability.
+
+### Step 4 — Photochemistry in the loop
+Add photochemical haze production (currently the source term Q(z) is imposed as
+a Gaussian at ~1 Pa / 400 km). Couple production rate / monomer properties to a
+photochemistry module (CH₄/N₂ photolysis) so the haze mass flux responds to the
+radiation field and composition, completing the radiation ↔ chemistry ↔
+microphysics feedback.
+
+## Repository layout (planned)
+
+```
+papers/                 source PDFs (reference literature)
+docs/
+  physics_parameters.md baseline constants & profiles extracted from the papers
+  scaling_law.md        derivation of C(z,N) dz dN = f(z,N,T,d,D)
+src/                    (to come) RT (DISORT wrapper), microphysics, coupler
+```
+
+## Key references
+
+| Paper | Role in this project |
+|---|---|
+| **Tomasko et al. (2008)**, *Planet. Space Sci.* 56, 648 — *Heat balance in Titan's atmosphere* | Energy-balance targets, gas composition, T(z) anchoring, haze opacity structure, validation tables (Step 1). |
+| **Lombardo & Lora (2023)**, *Icarus* 390, 115291 — *Seasonal radiative … Titan* | RT methodology (bands, correlated-k, CIA pairs, haze optics inputs, layering) for the RT solver (Step 1). |
+| **Burgalat & Rannou (2017)**, *J. Aerosol Sci.* 105, 151 — *Brownian coagulation of … fractal aerosols* | **Core of the scaling law**: Smoluchowski moment equations, Brownian kernels (continuum/free-molecular/transition), fractal radius laws, settling velocity (Step 2). |
+| **de Batz de Trenquelléon et al. (2025)**, *PSJ* 6, 79 — *Titan PCM II: Haze & cloud cycles* | Integrated coupling recipe (moments → optics → RT → T → microphysics) and baseline parameter values (Steps 2–4). |
+
+> Note: the companion papers **Tomasko 2008a** (haze optical constants ω₀, g,
+> Qₑₓₜ; fractal-aggregate geometry) and **Tomasko 2008b** (CH₄ k-coefficients)
+> are referenced but not in `papers/` — they should be obtained to fully
+> populate the optics table and CH₄ opacity in Step 1/Step 3.
+
+## Status
+
+- [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
+- [ ] Step 1 — DISORT energy balance
+- [ ] Step 2 — scaling-law implementation
+- [ ] Step 3 — coupled iteration
+- [ ] Step 4 — photochemistry coupling
