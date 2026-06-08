@@ -1,6 +1,3 @@
-# Source reference PDFs (copyrighted journal articles) — kept local, not pushed
-papers/
-
 # LaTeX toolchain env (installed locally, not committed)
 .texenv/
 
