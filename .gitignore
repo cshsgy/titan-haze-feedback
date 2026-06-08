@@ -1,5 +1,6 @@
-# LaTeX toolchain env (installed locally, not committed)
+# Local tool/runtime envs (installed locally, not committed)
 .texenv/
+.rtenv/
 
 # LaTeX build artifacts
 *.aux

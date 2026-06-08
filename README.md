@@ -79,12 +79,26 @@ src/microphysics/       Step 2 scaling-law solver
   transport.py          fractal geometry, settling omega, coagulation kernel beta
   scaling_law.py        K->0 master-ODE integrator -> n(z), Nbar(z), rho_h(z)
   bvp.py                full eddy-diffusion BVP (master ODE as initial guess)
+src/rt/                 Step 1 DISORT energy balance (needs pydisort/.rtenv)
+  column.py             layered column from an Atmosphere; heating-rate helper
+  optics.py             per-layer (tau, ssa, g): haze (Step 2) + gray-gas gas
+  disort_driver.py      pydisort wrapper: shortwave (beam) + longwave (Planck)
+  energy_balance.py     SW heating, LW cooling, radiative-equilibrium relaxation
 scripts/run_scaling_law.py   demo: integrate + plot the haze profiles
 scripts/cross_validate.py    validate against Tomasko/dT25 constraints
+scripts/run_energy_balance.py  demo: DISORT heating/cooling + equilibrium T(z)
 tests/test_scaling_law.py    master-ODE sanity checks
 tests/test_bvp.py            BVP sanity + cross-validation checks
+tests/test_rt.py             DISORT energy-balance structural checks (.rtenv)
 writing/                paper-style LaTeX writeup + built PDF
 ```
+
+### Environments
+
+Two local envs (both gitignored, see `.gitignore`):
+- **Microphysics (Step 2)** — runs on the system Python (numpy/scipy/matplotlib).
+- **RT (Step 1)** — needs `pydisort` (torch-based); installed in `.rtenv`. Run RT
+  scripts/tests with `.rtenv/bin/python`.
 
 ### Running Step 2
 
@@ -92,6 +106,13 @@ writing/                paper-style LaTeX writeup + built PDF
 python3 tests/test_scaling_law.py tests/test_bvp.py   # 12 checks
 python3 scripts/run_scaling_law.py     # K->0 profiles -> writing/figs/
 python3 scripts/cross_validate.py      # BVP + validation -> writing/figs/
+```
+
+### Running Step 1
+
+```bash
+.rtenv/bin/python tests/test_rt.py            # 6 structural checks
+.rtenv/bin/python scripts/run_energy_balance.py  # heating/cooling + T(z)
 ```
 
 **Cross-validation (vs. published Titan constraints).** The eddy-diffusion BVP
@@ -118,7 +139,9 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 ## Status
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
-- [ ] Step 1 — DISORT energy balance
+- [~] Step 1 — DISORT energy balance (`src/rt/`): two-band SW/LW via pydisort,
+      haze from Step 2, relaxes to a plausible T(z). **Gray-gas placeholder** for
+      CH₄+CIA — to be replaced with correlated-k; tight equilibrium pending that.
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration
