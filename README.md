@@ -73,7 +73,21 @@ papers/                 source PDFs (reference literature)
 docs/
   physics_parameters.md baseline constants & profiles extracted from the papers
   scaling_law.md        derivation of C(z,N) dz dN = f(z,N,T,d,D)
-src/                    (to come) RT (DISORT wrapper), microphysics, coupler
+src/microphysics/       Step 2 scaling-law solver
+  constants.py          physical constants + AerosolParams
+  atmosphere.py         background T(z), P(z), g(z), eta(T), lambda(T,P), K(z)
+  transport.py          fractal geometry, settling omega, coagulation kernel beta
+  scaling_law.py        master-ODE integrator -> n(z), Nbar(z), rho_h(z)
+scripts/run_scaling_law.py   demo: integrate + plot the haze profiles
+tests/test_scaling_law.py    sanity checks (mass-flux conservation, exponents, …)
+writing/                paper-style LaTeX writeup + built PDF
+```
+
+### Running Step 2
+
+```bash
+python3 tests/test_scaling_law.py      # sanity checks
+python3 scripts/run_scaling_law.py     # profiles -> writing/figs/
 ```
 
 ## Key references
@@ -94,6 +108,7 @@ src/                    (to come) RT (DISORT wrapper), microphysics, coupler
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
 - [ ] Step 1 — DISORT energy balance
-- [ ] Step 2 — scaling-law implementation
+- [x] Step 2 — scaling-law implementation (`src/microphysics/`, sedimentation-
+      dominated master ODE; full eddy-diffusion BVP still to add)
 - [ ] Step 3 — coupled iteration
 - [ ] Step 4 — photochemistry coupling

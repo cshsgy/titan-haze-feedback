@@ -310,6 +310,36 @@ rather than reduced to a single exponent.
   \end{tabular}
 \end{table}
 
+\subsection{Numerical solution}
+\label{sec:numres}
+
+We integrate the master ODE \eqref{eq:master} downward from $z_0=415\,\mathrm{km}$
+(seed $N_{\rm seed}=(r_p/d)^3\approx8\times10^{-3}$) on the crude Titan reference
+column, with $\eta(T)$ from a Sutherland law and $\lambda(T,P)$ from kinetic
+theory (Table~\ref{tab:params}). Figure~\ref{fig:profiles} shows the result. The
+mean size grows by seven orders of magnitude from the sub-monomer seed to
+$\Nbar\sim7\times10^4$ at the surface; the spherical$\to$fractal switch at
+$\Nbar=1$ near $390\,\mathrm{km}$ is visible as the divergence of the mobility
+radius $r_a$ from the mass radius $r$ (open aggregates have $r_a>r$ for
+$\Df<3$). The mass radius reaches $\approx0.35\,\mu\mathrm{m}$ near
+$300\,\mathrm{km}$---consistent with the characteristic radius
+$r_c\approx0.46\,\mu\mathrm{m}$ of \citet{deTrenquelleon2025}---and
+$\approx2\,\mu\mathrm{m}$ at the surface. Number densities span
+$\sim\!0.3$--$3\times10^4\,\mathrm{cm^{-3}}$, and the monomer mass flux
+$\rho_h\,\omega$ is conserved to machine precision, confirming
+Eq.~\eqref{eq:massflux}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/scaling_law_profiles.png}
+  \caption{Steady haze profiles from the sedimentation-dominated scaling law
+    \eqref{eq:master} on the Titan reference column: mean aggregate size
+    $\Nbar$ (dotted line marks the $\Nbar=1$ spherical/fractal switch), mass and
+    mobility radii, aggregate number density, and haze mass density. Aggregates
+    grow as they settle; $r_a$ exceeds $r$ in the fractal phase.}
+  \label{fig:profiles}
+\end{figure}
+
 \section{Coupled iteration (Step 3)}
 \label{sec:coupling}
 
