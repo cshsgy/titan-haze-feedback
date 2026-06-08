@@ -47,7 +47,7 @@ MODULE planetary_radiation_driver_mod
                                               optc, sfluxv, sfluxi, error_mesg 
         use haze_mod,                   only: haze_init, hazeclim_init, interp_haze_ls, clim_haze_profile, haze_end 
         use read_clim_mod,              only: readclim_MOD, saturate
-        use netcdf
+        ! use netcdf  ! removed: no nf90_ calls reached in prescribed mode
 
         implicit none
         private
@@ -75,9 +75,18 @@ MODULE planetary_radiation_driver_mod
         character(len=14)       ::  haze_clim_file = 'haze.nc' ! clim haze name
 
         ! "Solar" band edges, defined in wavenumber (using wavelengths in nm)
-  	real    :: bwnv(43) = 1.D6/[(/600:300:-50/),(/250:160:-10/),(/150:25:-5/)]
+        ! NOTE: original used the non-standard range syntax (/600:300:-50/);
+        ! rewritten as explicit literals (identical values) so it compiles with
+        ! stock gfortran.
+  	real    :: bwnv(43) = 1.D6/[ 600.,550.,500.,450.,400.,350.,300., &
+                                    250.,240.,230.,220.,210.,200.,190.,180.,170.,160., &
+                                    150.,145.,140.,135.,130.,125.,120.,115.,110.,105.,100., &
+                                    95.,90.,85.,80.,75.,70.,65.,60.,55.,50.,45.,40.,35.,30.,25. ]
         ! "Thermal infrared" band edges, defined in wavenumber
-  	real    :: bwni(41) = [1, (/50:2000:50/)]
+  	real    :: bwni(41) = [ 1.,50.,100.,150.,200.,250.,300.,350.,400.,450.,500., &
+                               550.,600.,650.,700.,750.,800.,850.,900.,950.,1000.,1050., &
+                               1100.,1150.,1200.,1250.,1300.,1350.,1400.,1450.,1500.,1550., &
+                               1600.,1650.,1700.,1750.,1800.,1850.,1900.,1950.,2000. ]
   
         character(len=128)      :: solar_spec_file      = 'solar_spectrum_houghton.txt'
         character(len=128)      :: gas_profiles         = 'trace_gases.txt' ! get rid of this [CK]
@@ -286,7 +295,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
         read(5, planetary_radiation_nml)
         close(5)
 
-        if (1) then
+        if (.true.) then
            print *, 'Radiation: Using a semi-major axis of ',sma
            print *, 'Radiation: Stellar spectrum from: '//trim(solar_spec_file)
            print *, 'Radiation: Absorber profiles from: '//trim(gas_profiles)
@@ -392,7 +401,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
                         end do
                         close(10)
             
-                     if (1) then
+                     if (.true.) then
                          print *, 'Radiation:  Using k-coeffs for visible '//trim(radgasv(g))
                      end if
                 end if
@@ -454,7 +463,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
                                 close(10)
                                 !NLEDIT - multiprocessor, uncomment for final
                                 !if (mpp_pe() == mpp_root_pe()) then
-                                if (1) then
+                                if (.true.) then
                                         print *, 'Radiation:  Using k-coeffs for IR '//trim(radgasi(g))
                                 end if
                         end if
@@ -514,7 +523,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
                                 close(10)
                                 !NLEDIT - multiprocessor, uncomment for final
                                 !if (mpp_pe() == mpp_root_pe()) then
-                                if (1) then
+                                if (.true.) then
                                         print *, 'Using visible CIA for '//trim(ciapairv(g))
                                 end if
                         end if
@@ -550,7 +559,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
                                 close(10)
                                 !NLEDIT - multiprocessor, uncomment
                                 !if (mpp_pe() == mpp_root_pe()) then
-                                if (1) then
+                                if (.true.) then
                                         print *, 'Radiation:  Using IR CIA for '//trim(ciapairi(g))
                                 end if
                         end if
@@ -562,13 +571,13 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
         if (do_radgasv .or. do_radgasi .or. do_ciav .or. do_ciai) then
                 !NLEDIT - multiprocessor, uncomment
                 !if (mpp_pe() .eq. mpp_root_pe()) then
-                if (1) then
+                if (.true.) then
                         if (len(trim(bkgnd_gas)) .gt. 0) then
                                 print *, 'Radiation:  Radiatively active background gas: '//trim(bkgnd_gas)
                         end if
                 end if
                 !if (mpp_pe() .eq. mpp_root_pe()) then - NLEDIT
-                if (1) then
+                if (.true.) then
                         if (len(trim(sphum_gas)) .gt. 0) then
                                 print *, 'Radiatively active gas from specific humidity tracer: '//trim(sphum_gas)
                         end if
@@ -640,7 +649,7 @@ SUBROUTINE planetary_radiation_init(npz, lat_grid, phalf, pfull)
                         end if
                 end do
         else
-                if (1) print *, 'Radiation:  No radiatively active gases selected!'
+                if (.true.) print *, 'Radiation:  No radiatively active gases selected!'
         end if
 !-----------------------------------------------------------------------------------------
 ! Initialize the vertical profiles for the prescribed absorbers
@@ -1383,7 +1392,7 @@ SUBROUTINE planetary_radiation(is, js, lat, lon, testing_ls, cosz, phalf, pfull,
                                                                                     ckci(g,:,:,:,:),ckc_temp,ckc_pres )
 
                                                                 ! Save molecule VMRs
-                                                                if (1) then
+                                                                if (.true.) then
                                                                         open (unit = 97, file = trim(clim_gas(n))//'vmr.txt')
                                                                         do k=1, L_LEVELS
                                                                                 write (97, ' (  500(X, E12.5) ) ') plev(k), mixing_ratio(k), real(clidx(k))

@@ -29,22 +29,34 @@ from rt.column import Column
 from rt.energy_balance import radiative_equilibrium, compute_fluxes
 
 
+TITAN_DAY = 1.378e6   # s
+
+
 def load_fortran(run_dir: Path):
-    """Load Fortran outputs if present: returns dict or None."""
+    """Load Fortran outputs: temperatures.txt (row0=pressure[Pa], last row=T[K]),
+    sw.txt/lw.txt (heating rate [K/s], last row).  Returns dict or None."""
     T_file = run_dir / "temperatures.txt"
     if not T_file.exists():
         return None
-    out = {}
     try:
-        out["T"] = np.loadtxt(T_file)
+        T = np.loadtxt(T_file)
+        if T.ndim != 2 or T.shape[0] < 2:
+            return None
+        P = T[0]                                   # pressure grid [Pa]
+        Tprof = T[-1]                              # last (most evolved) snapshot
+        if not np.all(np.isfinite(Tprof)):
+            print("warning: Fortran temperature snapshot contains NaN")
+            return None
+        out = {"P": P, "T": Tprof}
         for key, fname in (("sw", "sw.txt"), ("lw", "lw.txt")):
             f = run_dir / fname
             if f.exists():
-                out[key] = np.loadtxt(f)
+                a = np.loadtxt(f)
+                out[key] = (a[-1] if a.ndim == 2 else a) * TITAN_DAY  # K/Titan-day
+        return out
     except Exception as e:
         print(f"warning: could not parse Fortran outputs: {e}")
         return None
-    return out
 
 
 def main():
@@ -60,39 +72,34 @@ def main():
 
     fort = load_fortran(run_dir)
 
+    # compare vs PRESSURE (both models share the pressure coordinate)
     fig, ax = plt.subplots(1, 2, figsize=(11, 5.5))
-    ax[0].plot(eq.T, eq.z / 1e3, "r-", label="this work (DISORT)")
-    ax[1].plot(fx.sw_heating, fx.z_mid / 1e3, "C0", label="SW (this work)")
-    ax[1].plot(fx.lw_heating, fx.z_mid / 1e3, "C1", label="LW (this work)")
+    ax[0].plot(eq.T, eq.P, "r-", lw=1.8, label="this work (DISORT)")
+    ax[1].plot(fx.sw_heating, eq.P_mid, "C0", label="SW (this work)")
+    ax[1].plot(fx.lw_heating, eq.P_mid, "C1", label="LW (this work)")
 
     if fort is not None:
-        # Fortran grid is pressure-based (nlay layers); plot vs an index proxy if
-        # no altitude file -- here we simply overlay on the same axis order.
         print(f"overlaying Fortran outputs from {run_dir}")
-        n = fort["T"].size
-        yidx = np.linspace(eq.z.min(), eq.z.max(), n) / 1e3
-        ax[0].plot(fort["T"], yidx, "k--", label="example_bowen_fort")
+        ax[0].plot(fort["T"], fort["P"], "k--", lw=1.5, label="example_bowen_fort")
         if "sw" in fort:
-            ax[1].plot(fort["sw"], np.linspace(0, 430, fort["sw"].size),
-                       "k--", label="SW (Fortran)")
+            ax[1].plot(fort["sw"], fort["P"], "k--", label="SW (Fortran)")
         if "lw" in fort:
-            ax[1].plot(-np.abs(fort["lw"]), np.linspace(0, 430, fort["lw"].size),
-                       "k:", label="LW (Fortran)")
-        title_note = "with reference Fortran model"
+            ax[1].plot(fort["lw"], fort["P"], "k:", label="LW (Fortran)")
+        title_note = "vs reference Fortran model (TAM-derived)"
     else:
         print("Fortran outputs not found -- plotting this work only.")
-        print("Build+run src/example_bowen_fort (needs INPUT/DATA, namelist, "
-              "and the missing haze.F90 / read_clim modules) to enable overlay.")
-        title_note = "(Fortran model not yet run -- see src/example_bowen_fort/README)"
+        print("Run scripts/run_fortran.sh to enable the overlay.")
+        title_note = "(run scripts/run_fortran.sh for the Fortran overlay)"
 
-    ax[0].set_xlabel("temperature [K]"); ax[0].set_ylabel("altitude [km]")
-    ax[0].set_title("temperature"); ax[0].legend(); ax[0].grid(alpha=0.3)
-    ax[1].axvline(0, color="grey", lw=0.6); ax[1].set_xlim(-60, 60)
-    ax[1].set_xlabel("rate [K / Titan-day]"); ax[1].set_title("heating / cooling")
-    ax[1].legend(); ax[1].grid(alpha=0.3)
     for a in ax:
-        a.set_ylim(0, 430)
-    fig.suptitle(f"DISORT energy balance vs reference Fortran {title_note}")
+        a.set_yscale("log"); a.set_ylim(1.5e5, 1.0)   # surface at bottom
+        a.grid(alpha=0.3)
+    ax[0].set_xlabel("temperature [K]"); ax[0].set_ylabel("pressure [Pa]")
+    ax[0].set_title("temperature"); ax[0].legend()
+    ax[1].axvline(0, color="grey", lw=0.6); ax[1].set_xlim(-80, 80)
+    ax[1].set_xlabel("rate [K / Titan-day]"); ax[1].set_title("heating / cooling")
+    ax[1].legend()
+    fig.suptitle(f"DISORT energy balance {title_note}")
     fig.tight_layout()
     out = ROOT / "writing" / "figs" / "fortran_comparison.png"
     fig.savefig(out, dpi=130)

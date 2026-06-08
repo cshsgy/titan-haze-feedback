@@ -356,7 +356,7 @@ PROGRAM RUN_PLANETARY_RADIATION
     enddo
 
     if (ANY(ABS(time_step*tdt) .ge. 80.)) then
-    !if (0) then
+    !if (.false.) then
         t2 = t + 0.1*time_step * tdt
         print *, 'Decreasing timestep to prevent excessive heat/cooling'
     else

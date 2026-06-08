@@ -28,8 +28,8 @@ MODULE planetary_radiation_mod
 
 SUBROUTINE error_mesg(inp1, inp2, inp3)
 
-        character, dimension(300) :: inp1, inp2
-        real ::  inp3
+        character(len=*) :: inp1, inp2
+        real, optional ::  inp3
         print *, "ERROR - "
         print *, inp1
         print *, ''

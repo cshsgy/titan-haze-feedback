@@ -7,6 +7,26 @@
 src/example_bowen_fort/*.o
 src/example_bowen_fort/*.mod
 src/example_bowen_fort/run_planetary_radiation
+# unused 23 MB netCDF haze climatology (we use prescribed-text haze)
+src/example_bowen_fort/INPUT/DATA/haze.nc
+# run outputs / regenerated restart checkpoint (keep the *_seed restart)
+src/example_bowen_fort/run.log
+src/example_bowen_fort/initial_temperatures.txt
+src/example_bowen_fort/temperatures.txt
+src/example_bowen_fort/sw.txt
+src/example_bowen_fort/lw.txt
+src/example_bowen_fort/tsurf.txt
+src/example_bowen_fort/swspec.txt
+src/example_bowen_fort/lwspec.txt
+src/example_bowen_fort/surface_fluxes.txt
+src/example_bowen_fort/convective_diagnostics.txt
+src/example_bowen_fort/tdt_lw.txt
+src/example_bowen_fort/heating_calc.txt
+src/example_bowen_fort/model_interp_ray.txt
+src/example_bowen_fort/trace_gases.txt
+src/example_bowen_fort/tau_*.txt
+src/example_bowen_fort/dtau_*.txt
+src/example_bowen_fort/ssa_*.txt
 
 # Raw HITRAN CIA files (~13 MB; rebuild via scripts/fetch_cia.py).
 # The compact band-averaged table data/cia/titan_cia_bands.npz IS committed.

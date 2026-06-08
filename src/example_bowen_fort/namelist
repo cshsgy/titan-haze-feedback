@@ -1,0 +1,46 @@
+&planetary_radiation_nml
+radgasv         = 'CH4' '' '' '' '' '' '' '' '' '',
+radgasi         = 'CH4' 'C2H2' 'C2H6' 'C2H4' 'HCN' '' '' '' '' '',
+ciapairv        = '' '' '' '' '' '' '' '' '' '',
+ciapairi        = 'N2-N2' 'N2-CH4' 'CH4-CH4' 'N2-H2' '' '' '' '' '' '',
+clim_gas        = '' '' '' '' '' '' '' '' '' '',
+haze_data       = 'presc',
+haze_clim_file  = ''
+haze_presc_file = 'preschaze',
+presc_gas       = 'CH4' 'C2H2' 'C2H6' 'C2H4' 'HCN' 'H2' '' '' '' '',
+rayleigh_file   = 'Rayleigh.txt',
+sphum_gas       = ''
+sma             = 9.5
+bkgnd_gas       = 'N2'
+grav            = 1.35
+Rdgas           = 297.
+Rvgas           = 518.
+Cp_air          = 1039.5
+Cp_vapor        = 225.
+write_cia_pair_diagnostics = .false.
+/
+
+&run_planetary_radiation_nml
+num_i           = 60      ! About 13.6 Earth years with the timestep below
+write_every     = 60        ! Save once per Titan day at fixed local time
+time_step       = 86130.     ! Exact 1/16 Titan day
+testing_lat     = 0.         ! Latitude
+testing_ls      = 0.         ! Fixed-season experiment
+init_t          = 0.         ! Read initial_temperature.txt
+low             = 1.0        ! Troposphere-focused top pressure
+seconds_per_day = 1378080.   ! Titan solar day in seconds
+obliq           = 26.73      ! Planetary obliquity
+grav            = 1.35       ! Gravitational acceleration
+Rdgas           = 297.       ! Dry gas constant
+cp_air          = 1039.5     ! Specific heat at constant pressure
+albv            = 0.15       ! Planetary albedo (visible)
+albi            = 0.05       ! Planetary albedo (infrared)
+surface_flux_offset          = 0.0    ! No residual surface-energy correction
+use_bulk_surface_flux        = .true. ! Use simple bulk sensible/latent exchange
+surface_wind_speed           = 0.03   ! Titan-like near-surface wind speed
+surface_drag_coeff           = 0.0015 ! Gives Cd*U ~ 4.5e-5 m/s, near Huygens-like sensible flux
+surface_relative_humidity    = 0.52   ! Huygens-like near-surface methane RH
+surface_methane_availability = 0.0    ! Dry Huygens surface: no evaporation by default
+surface_initial_offset       = 0.0    ! Ignored when initial_temperatures.txt is present
+Q_thermo        = 0.         ! Ignored by current driver, but kept for clarity
+/

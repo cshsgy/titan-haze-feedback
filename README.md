@@ -114,9 +114,25 @@ python3 scripts/cross_validate.py      # BVP + validation -> writing/figs/
 ### Running Step 1
 
 ```bash
-.rtenv/bin/python tests/test_rt.py            # 6 structural checks
+.rtenv/bin/python tests/test_rt.py            # structural checks
 .rtenv/bin/python scripts/run_energy_balance.py  # heating/cooling + T(z)
 ```
+
+### Reference Fortran model (`src/example_bowen_fort/`)
+
+A TAM-derived (Lora/Lombardo lineage) Fortran radiation model is included for
+cross-comparison. It builds with stock gfortran and runs on prescribed data:
+
+```bash
+bash scripts/build_fortran.sh && bash scripts/run_fortran.sh
+.rtenv/bin/python scripts/compare_fortran.py   # overlay -> writing/figs/fortran_comparison.png
+```
+
+Our DISORT model and the full TAM model agree closely on T(z) (stratopause
+~185–190 K, tropopause ~70–75 K, surface ~90 K). Two of its modules
+(`haze_mod`, `read_clim_mod`) were missing from the upload and are **reconstructed**
+in `reconstructed_stubs.F90` (notably an approximate `saturate`); see that dir's
+README for provenance.
 
 **Cross-validation (vs. published Titan constraints).** The eddy-diffusion BVP
 reproduces the haze extinction scale height of Tomasko et al. (2008),
