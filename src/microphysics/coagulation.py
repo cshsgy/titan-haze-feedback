@@ -108,4 +108,4 @@ def coag_tendencies(M0S, M3S, M0F, M3F, z, atm, p, sigma_s, sigma_f, n=20):
             dM3S += -lossS; dM3F += gainF
 
     out = (dM0S, dM3S, dM0F, dM3F)
-    return tuple(float(o) for o in out) if scalar else out
+    return tuple(np.asarray(o).reshape(-1)[0].item() for o in out) if scalar else out

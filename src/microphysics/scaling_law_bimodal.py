@@ -17,11 +17,26 @@ initial guess for the full eddy-diffusion BVP (piece 3).
 
 from __future__ import annotations
 
+import contextlib
+import os
 from dataclasses import dataclass
 
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.optimize import brentq
+
+
+@contextlib.contextmanager
+def _quiet_fortran():
+    """Silence the underlying Fortran solver's benign fd-2 warning flood."""
+    fd = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 2)
+    try:
+        yield
+    finally:
+        os.dup2(fd, 2)
+        os.close(devnull); os.close(fd)
 
 from .atmosphere import Atmosphere
 from .constants import AerosolParams, DEFAULT
@@ -40,6 +55,23 @@ class BimodalResult:
     rho_h: np.ndarray                     # total haze mass density [kg/m^3]
     atm: Atmosphere; params: AerosolParams
     sigma_s: float; sigma_f: float
+
+
+def to_micro(res):
+    """Adapt a bimodal result to the (z, n, Nbar, r_a, params) interface the
+    optics expect.  The RDG haze opacity depends only on the monomer-volume column
+    ``n*Nbar`` (= total monomer count density ``(M3S+M3F)/d^3``), so the bimodal
+    haze plugs straight into ``rt.optics`` / the coupling.  ``Nbar`` and ``r_a``
+    are the mass-weighted means (the optically dominant F mode)."""
+    from types import SimpleNamespace
+    d = res.params.d_mono
+    mono = (res.M3S + res.M3F) / d ** 3                 # monomer count density [1/m^3]
+    n_tot = np.maximum(res.M0S + res.M0F, _FLOOR)
+    Nbar = mono / n_tot
+    r = d * np.cbrt(np.maximum(Nbar, 1e-12))
+    r_a = d * np.maximum(Nbar, 1e-12) ** (1.0 / res.params.D_f)
+    return SimpleNamespace(z=res.z, n=n_tot, Nbar=Nbar, r=r, r_a=r_a,
+                           rho_h=res.rho_h, params=res.params)
 
 
 def _recover(Phi0, Phi3, sigma, Df, z, atm, p, lo=1e-9, hi=2e-4):
@@ -89,10 +121,11 @@ def solve_bimodal_kzero(atm: Atmosphere | None = None,
         return [-d[0], -d[1], -d[2], -d[3]]                 # dPhi/dz = -coag
 
     z_eval = np.linspace(z0, 0.0, n_out)
-    # F mode starts empty at z0; the LSODA "t+h=t" warnings on the first steps
-    # are benign (the degenerate empty-F start) and do not affect the result.
-    sol = solve_ivp(rhs, (z0, 0.0), y0, t_eval=z_eval, method="LSODA",
-                    rtol=1e-4, atol=1e-30)
+    # LSODA is robust here; its benign "t+h=t" warnings at the empty-F start
+    # (Fortran fd-2) are suppressed.
+    with _quiet_fortran():
+        sol = solve_ivp(rhs, (z0, 0.0), y0, t_eval=z_eval, method="LSODA",
+                        rtol=1e-4, atol=1e-30)
 
     M0S = np.empty(n_out); M3S = np.empty(n_out)
     M0F = np.empty(n_out); M3F = np.empty(n_out)
