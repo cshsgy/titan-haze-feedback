@@ -23,8 +23,42 @@ altitude; the driver reverses them to DISORT top-down order.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
+
+_DATA = (Path(__file__).resolve().parents[2]
+         / "src" / "example_bowen_fort" / "INPUT" / "DATA")
+
+
+def _parse_preschaze(field: str):
+    """Read preschazev_<field>.txt -> (wn[nw], pl[npl], data[npl, nw])."""
+    L = (_DATA / f"preschazev_{field}.txt").read_text().split("\n")
+    nw, npl = int(L[1]), int(L[2])
+    wn = np.array(L[3].split(), float)
+    pl = np.array(L[4].split(), float)
+    data = np.array([L[5 + i].split() for i in range(npl)], float)
+    return wn, pl, data
+
+
+@lru_cache(maxsize=8)
+def spectral_haze_sw(band_centers_key):
+    """Observational haze single-scattering albedo and asymmetry per SW band.
+
+    From the Huygens/DISR-derived prescribed haze (Doose 2016 / Tomasko 2008):
+    omega0(lambda) and g(lambda), interpolated to the model band centres.  These
+    properties are nearly pressure-independent, so a representative stratospheric
+    level is used.  omega0 falls to ~0 (pure absorber) in the UV -- the dominant
+    stratospheric shortwave heating that a gray albedo misses.
+    """
+    band_centers = np.array(band_centers_key, float)
+    wn_s, pl, ssa = _parse_preschaze("ssa")
+    wn_g, _, gg = _parse_preschaze("g")
+    ip = int(np.argmin(np.abs(pl - 200.0)))        # ~200 Pa (stratosphere)
+    omega0 = np.interp(band_centers, wn_s, ssa[ip])
+    g = np.interp(band_centers, wn_g, gg[ip])
+    return np.clip(omega0, 0.0, 0.999999), np.clip(g, 0.0, 0.95)
 
 
 @dataclass
@@ -90,29 +124,34 @@ def shortwave_optics(column, micro, p: OpticsParams):
 def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
     """Correlated-k shortwave optics: per (band, Gauss-point) wave.
 
-    Combines gray haze scattering (constant across bands) with spectral CH4
+    Combines spectral haze single-scattering properties (omega0(lambda),
+    g(lambda) from the observational prescribed haze) with spectral CH4
     absorption from ``rt.correlated_k.CorrelatedKSW``.  Returns
-    (tau, ssa, g_haze, fbeam, weights) where tau/ssa are (nwave, nlyr) ascending,
-    fbeam[nwave] is the per-band TOA solar flux and weights[nwave] the Gauss
-    weights; the gas is a pure absorber so only ``ssa`` varies between waves.
+    (tau, ssa, g_wave, fbeam, weights): tau/ssa are (nwave, nlyr) ascending,
+    g_wave[nwave] the per-wave asymmetry, fbeam[nwave] the per-band TOA solar
+    flux, weights[nwave] the Gauss weights.  The gas is a pure absorber, so it
+    lowers ``ssa`` without changing the (haze) phase function.
     """
     tau_gas = ck.layer_tau(column, comp)              # (nband, ngauss, nlyr)
     tau_haze = layer_haze_tau(column, micro, p)       # (nlyr,)
     nb, ng, nlyr = tau_gas.shape
     nwave = nb * ng
-    sca_haze = p.ssa_haze_sw * tau_haze               # haze scattering optical depth
+    omega0_b, g_b = spectral_haze_sw(tuple(np.round(ck.bands, 3)))   # per band
     tau = np.empty((nwave, nlyr))
     ssa = np.empty((nwave, nlyr))
+    g_wave = np.empty(nwave)
     for b in range(nb):
+        sca_haze = omega0_b[b] * tau_haze             # haze scattering opt depth (nlyr)
         for gi in range(ng):
             w = b * ng + gi
             tt = tau_haze + tau_gas[b, gi]
             tau[w] = tt
             ssa[w] = np.clip(np.where(tt > 0, sca_haze / np.maximum(tt, 1e-300), 0.0),
                              0.0, 0.999999)
+            g_wave[w] = g_b[b]
     fbeam = np.repeat(ck.solar, ng)                   # per-band solar, repeated over g
     weights = np.tile(ck.gw, nb)                      # Gauss weight per wave
-    return tau, ssa, p.g_haze_sw, fbeam, weights
+    return tau, ssa, g_wave, fbeam, weights
 
 
 def longwave_optics_spectral(column, micro, cia, p: OpticsParams, comp=None):

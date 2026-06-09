@@ -85,6 +85,21 @@ def test_correlated_k_ch4_shortwave():
     assert sw[0] > 0                              # some sunlight reaches the surface
 
 
+def test_spectral_haze_sw():
+    """Spectral haze single-scattering albedo is wavelength-dependent and absorbs
+    strongly in the UV (omega0 -> 0), unlike a gray albedo."""
+    from rt.correlated_k import CorrelatedKSW
+    from rt.optics import spectral_haze_sw
+    ck = CorrelatedKSW(sma_au=9.58)
+    omega0, g = spectral_haze_sw(tuple(np.round(ck.bands, 3)))
+    assert omega0.size == ck.nband and g.size == ck.nband
+    assert 0.0 <= omega0.min() < 0.5          # absorbing UV/red bands
+    assert omega0.max() > 0.8                  # scattering visible/near-IR bands
+    assert np.all((g >= 0.0) & (g <= 0.95))
+    # spectral, not gray
+    assert omega0.max() - omega0.min() > 0.3
+
+
 def test_cia_far_ir_optically_thick():
     """N2-N2 makes the far-IR optically thick and the mid-IR thin (Titan greenhouse)."""
     _, _, col = _setup()

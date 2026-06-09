@@ -67,15 +67,15 @@ def solve_shortwave(tau, ssa, g, fbeam, umu0, albedo=0.1, nstr=8):
     return _net_down(ds)[::-1].copy()       # back to ascending
 
 
-def solve_shortwave_spectral(tau, ssa, g_haze, fbeam, weights, umu0,
+def solve_shortwave_spectral(tau, ssa, g_wave, fbeam, weights, umu0,
                              albedo=0.1, nstr=8):
     """Multi-wave (correlated-k) solar-beam DISORT solve.
 
     ``tau, ssa`` are (nwave, nlyr) ascending-in-altitude, one wave per
-    (band, Gauss-point); ``fbeam[nwave]`` is the per-band TOA solar flux and
-    ``weights[nwave]`` the Gauss weights.  Scattering is haze-only, so the phase
-    function is a single Henyey-Greenstein with asymmetry ``g_haze`` for every
-    wave (gas is a pure absorber, varying only ``ssa``).  Returns the
+    (band, Gauss-point); ``g_wave[nwave]`` is the per-wave (haze) asymmetry,
+    ``fbeam[nwave]`` the per-band TOA solar flux, ``weights[nwave]`` the Gauss
+    weights.  Scattering is haze-only (Henyey-Greenstein, asymmetry varying by
+    band); the gas is a pure absorber, lowering only ``ssa``.  Returns the
     weight-summed net downward flux at levels (ascending).
     """
     tau = np.asarray(tau, float)
@@ -91,7 +91,10 @@ def solve_shortwave_spectral(tau, ssa, g_haze, fbeam, weights, umu0,
     prop = torch.zeros((nwave, 1, nlyr, nprop))
     prop[:, 0, :, 0] = torch.from_numpy(tau[:, ::-1].copy())
     prop[:, 0, :, 1] = torch.from_numpy(np.asarray(ssa, float)[:, ::-1].copy())
-    prop[:, 0, :, 2:] = scattering_moments(nstr, "henyey-greenstein", float(g_haze))
+    # Henyey-Greenstein moments per wave: g_w^l for l = 1..nstr
+    g_wave = np.asarray(g_wave, float)
+    moments = g_wave[:, None] ** np.arange(1, nstr + 1)[None, :]   # (nwave, nstr)
+    prop[:, 0, :, 2:] = torch.from_numpy(moments.copy())[:, None, :]
 
     fbeam = np.asarray(fbeam, float).reshape(nwave, 1)
     ds.forward(prop,

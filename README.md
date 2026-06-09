@@ -159,15 +159,18 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
 - [~] Step 1 — DISORT energy balance (`src/rt/`) via pydisort: **correlated-k CH₄
-      shortwave** (`correlated_k.py`, same k-table as the Fortran model; 42 bands ×
-      10 Gauss points) + **multiband longwave with real HITRAN CIA** (N₂–N₂, N₂–CH₄,
-      CH₄–CH₄, N₂–H₂), haze from Step 2. Genuine radiative–convective steady state
-      (residual <1 K/day, energy closed to ~0.1 W/m²): stratopause ~115 K, cold
+      shortwave** (`correlated_k.py`) + **spectral haze optics** (observational
+      ω₀(λ)/g(λ), `optics.spectral_haze_sw`) + **multiband longwave with real HITRAN
+      CIA** (N₂–N₂, N₂–CH₄, CH₄–CH₄, N₂–H₂), haze from Step 2. Genuine
+      radiative–convective steady state (residual <1 K/day, energy closed to
+      ~0.1 W/m²; SW absorbed ~4 W/m², near Tomasko's 4.5): stratopause ~115 K, cold
       tropopause ~74 K, ~92 K surface. Still ~80 K cooler than observed in the
-      stratosphere — now attributable to the **haze SW optics** (our microphysical
-      haze absorbs less sunlight aloft than the reference's prescribed haze), the
-      next refinement. Cross-validated against `example_bowen_fort` (full
-      correlated-k, observed ~195 K stratopause).
+      stratosphere — the gap is **not** the SW gas/haze single-scattering (both now
+      spectral) but (i) the haze optical-depth magnitude (mobility-radius
+      cross-section overestimates large-aggregate extinction) and (ii) LW gas-line
+      cooling (C₂H₂/C₂H₆/HCN), which our CIA-only LW lacks. Next: mean-field
+      aggregate optics + gas-line LW. Cross-validated vs `example_bowen_fort`
+      (full physics, observed ~195 K stratopause).
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration
