@@ -129,12 +129,23 @@ At `sigma_S=1.5, sigma_F=2.0` (K->0 profiles):
 - **Temperature.** The DISORT stratopause is **insensitive** to the 4.4x tau
   difference: ~142 K for both hazes (the lower stratosphere differs, the
   stratopause does not).
-- **Bistability RESOLVED.** With the polydisperse haze the radiative-convective
-  equilibrium is **monostable** (warm vs cool start: 142 vs 139 K, ~3 K), versus
-  the ~31 K split with the monodisperse haze. The absorbing-haze bistability was
-  tied to the monodisperse model's overestimate of the haze opacity at altitude;
-  the realistic (thinner) polydisperse haze falls below the feedback threshold.
-  This is sigma_F-dependent (a thicker haze at smaller sigma_F may restore it).
+- **Bistability STRONGLY SUPPRESSED (not eliminated).** Two fixed-haze warm/cool
+  tests, which differ by *which haze is held fixed*:
+  - *reference-temperature haze* (sigma_f_sweep / polydisperse_compare): warm vs
+    cool 142 vs 139 K, **~3 K** -- effectively monostable at the nominal state.
+  - *transition-state haze* (the haze the section-diag monodisperse test fixes;
+    `scripts/bistable_states.py`, nlyr=100): warm 149 vs cool 142 K, **~8 K**
+    stratopause (21-25 K through the profile), **converged** (split holds at 7.6 K
+    as both residuals fall to 0.30 K/day at n_iter 8000-16000;
+    `scripts/check_bimodal_converge.py`). sigma_F-independent (same 8 K at 1.2 and 2.0).
+
+  So the consistent (transition-state) comparison gives a *weak residual*
+  bistability, ~half the monodisperse 17 K stratopause split (31 K profile), with
+  the warm branch cooled 158->149 K. Polydispersity pulls the feedback gain back
+  toward unity but does not cleanly cross below 1; the wide, robust monodisperse
+  bistability is largely a single-size artifact. A definitive yes/no on the
+  residual needs the deferred continuation solve of T=F(haze(T)).
+  Paper: Fig 6 (`writing/figs/bistable_states.png`), sec:coupling-result/-poly.
 
 ## Open parameters (need values)
 
