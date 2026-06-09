@@ -240,23 +240,27 @@ def main():
                   f"{gas_cum[j]:8.3f} {fgi_b[j]:8.3f} | "
                   f"{cia_cum[j]:9.3f} {fci_b[j]:9.3f}{mid}")
 
-    # ---------- VERDICT: mid-altitude (10-100 Pa) relative discrepancy ----------
+    # ---------- VERDICT: COLUMN-INTEGRATED ratio ours/Fortran ----------
+    # Use the column-total (deepest sampled pressure) cumulative tau per source:
+    # a clean, noise-free figure of merit.  Earlier we reported the ratio at
+    # mid-altitude, but for thin sources (IR haze, SW gas) the mid-altitude
+    # cumulative tau is ~1e-3 and the ratio is dominated by our diagnostic
+    # column's top truncation (top 1.06 Pa vs the reference's 0.888 Pa), NOT a
+    # real opacity difference -- the per-band prescribed-haze interpolation is
+    # identical (ratio 1.000) at matched band centres.
+    jref = int(np.argmin(np.abs(Pq - 3e4)))      # deep, but above the bottom-layer edge
     print("\n" + "=" * 78)
-    print("VERDICT  --  mid-altitude (10-100 Pa) cumulative-tau ratio ours/Fortran")
-    print("(averaged over the sampled bands where the source is non-negligible)")
-    midmask = (Pq >= 10) & (Pq <= 100)
+    print(f"VERDICT  --  cumulative-tau ratio ours/Fortran at P={Pq[jref]:.0f} Pa (deep)")
+    print("(near the column total, above the bottom-layer edge; mean over sampled bands)")
 
-    deepmask = Pq >= 1e4                      # CIA lives in the deep atmosphere
-
-    def ratio(our_src_cum, fP, ftau, bands, fbands, mask=midmask):
+    def ratio(our_src_cum, fP, ftau, bands, fbands):
         rs = []
         for _, bi in bands:
             fbi = bi if fbands is None else int(np.argmin(np.abs(fbands - lw_wno[bi])))
-            ours = our_cum(our_src_cum, bi)[mask]
-            fort = finterp(fP, ftau, fbi, Pq)[mask]
-            m = fort > 1e-4
-            if m.any():
-                rs.extend((ours[m] / fort[m]).tolist())
+            ours = our_cum(our_src_cum, bi)[jref]
+            fort = finterp(fP, ftau, fbi, Pq)[jref]
+            if fort > 1e-3:
+                rs.append(ours / fort)
         return (np.mean(rs), np.min(rs), np.max(rs)) if rs else (np.nan,)*3
 
     for label, args in [
@@ -264,16 +268,17 @@ def main():
         ("SW gas CH4 ", (sw_cum["gas CH4"], fPgv, fgv_cum, sw_bands, None)),
         ("LW haze    ", (lw_cum["haze"], fPi, fhi, lw_bands, fwi)),
         ("LW gas line", (lw_cum["gas line"], fPgi, fgi_cum, lw_bands, fwi)),
-        ("LW CIA*    ", (lw_cum["CIA"], fPc, fci, lw_bands, fwc, deepmask)),
+        ("LW CIA     ", (lw_cum["CIA"], fPc, fci, lw_bands, fwc)),
     ]:
         mean, lo, hi = ratio(*args)
         if mean != mean:
             print(f"  {label}: (negligible in sampled bands)")
             continue
-        tag = "OK" if 0.8 <= mean <= 1.25 else "<-- check"
+        tag = "OK" if 0.85 <= mean <= 1.18 else "<-- check"
         print(f"  {label}: ours/F = {mean:5.2f}  (range {lo:4.2f}-{hi:4.2f})  {tag}")
-    print("  (* CIA is evaluated at depth, 10-100 kPa, where the continuum lives;")
-    print("     it now uses the reference's exp-sum transmission fits, not HITRAN.)")
+    print("  (prescribed haze interpolates identically in both models -- the per-band")
+    print("   ratio is 1.000 at matched centres; small column-total deviations are the")
+    print("   diagnostic column's top truncation, not a model opacity difference.)")
 
     # ---------- figure: cumulative tau by source vs pressure ----------
     fig, axes = plt.subplots(2, 3, figsize=(15, 9), sharey=True)

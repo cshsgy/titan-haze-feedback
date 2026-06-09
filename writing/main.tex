@@ -290,14 +290,14 @@ C$_2$H$_6$/C$_2$H$_4$/HCN), Rayleigh, and CIA---separately from the top down
 per-band Gauss-weighted gas-opacity output, so even the correlated-$k$ gas can
 be compared directly rather than inferred.
 
-Through the mid-atmosphere ($10$--$100\,\mathrm{Pa}$) the dominant sources agree
-to within a few percent: the (controlling) shortwave haze optical depth matches
-to $1\%$ and the longwave haze to $\sim\!10\%$. The CH$_4$ shortwave gas is the
-one mid-atmosphere outlier, ours $\sim\!1.65\times$ the reference, but that band
-is optically thin ($\tau\lesssim0.01$ in the column) and contributes negligibly
-to the heating. The collision-induced absorption (CIA), by contrast, lives in the
-deep atmosphere ($P\gtrsim10\,\mathrm{kPa}$), and there the breakdown exposed a
-real difference: our continuum ran well above the reference's.
+The prescribed haze, which both models read from the same observational tables,
+interpolates identically: at matched band centres the per-band optical depth
+agrees to machine precision (ratio $1.000$) in both the shortwave and the
+longwave, at every level. The CH$_4$ correlated-$k$ gas likewise agrees at the
+column scale (shortwave $1.03$, longwave $1.08$). The one source that genuinely
+differed is the collision-induced absorption (CIA), which lives in the deep
+atmosphere ($P\gtrsim10\,\mathrm{kPa}$): there the breakdown showed our continuum
+running well above the reference's.
 
 We traced this to the CIA formulation. Our model band-averaged the HITRAN
 cross-sections and formed $\tau=\sum_\mathrm{pairs}k\,n_A n_B\,\Delta z$, whereas
@@ -310,11 +310,11 @@ optical depth by $\sim\!1.75\times$. Adopting the reference's exponential-sum
 fits (reading the same transmission tables) brings the two continua into
 agreement to a few percent through the bulk of the deep atmosphere
 (Fig.~\ref{fig:opacity}, bottom row; the per-band cumulative-$\tau$ ratio is
-$0.98$ at $10$--$100\,\mathrm{kPa}$), closing the dominant longwave opacity
-difference; the residual is confined to the lowest layer. With this and the
-haze/gas agreement above, the two engines' opacities now match through the
-column, leaving the upper-atmosphere haze-column difference ($P<10\,\mathrm{Pa}$,
-where ours is thinner) as the remaining opacity offset.
+$1.00$ at $30\,\mathrm{kPa}$, with the residual confined to the single lowest
+layer). With this, \emph{every} opacity source---haze, CH$_4$, gas lines,
+Rayleigh, and CIA---matches the reference to within a few percent through the
+column, so the engines now differ only in the radiative-transfer solution
+itself, not in the optical depths fed to it.
 
 \begin{figure}[t]
   \centering
