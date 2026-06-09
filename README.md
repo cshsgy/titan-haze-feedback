@@ -205,11 +205,15 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       the radiation.)
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
-- [ ] Step 3 — coupled iteration. **Scoped** in
-      [`docs/step3_coupling.md`](docs/step3_coupling.md): a Python loop regenerates
-      the Fortran's prescribed-haze files (`coupledhaze*.txt`) from the Step 2
-      microphysics each iteration and re-runs the engine — **no Fortran source
-      changes** (uses the existing `haze_data='presc'` path). The former blocker
-      (reference's unconverged top at the haze source) is **resolved** — a
-      per-layer step cap cut the top oscillation ~24→2.5 K.
+- [~] Step 3 — coupled iteration **built and run** (`scripts/run_coupled.py`;
+      `src/coupling/`): a Python loop regenerates the Fortran's prescribed-haze
+      tables from the Step 2 microphysics each pass and cold-starts the engine —
+      **no Fortran source changes** (`haze_data='presc'`). Round-trip + one-shot
+      validated (`tests/test_presc_haze.py`, 39 checks). **Finding:** the feedback
+      is **strong and near-bistable** — the loop oscillates between a warm
+      (~183 K, ≈observational) and a cool (~131 K, microphysics) stratopause and
+      does not settle under naive iteration; a converged fixed point needs harder
+      damping / a continuation method (see `docs/step3_coupling.md`,
+      `writing/figs/coupled_feedback.png`). The earlier top-oscillation blocker is
+      resolved (per-layer step cap, ~24→2.5 K).
 - [ ] Step 4 — photochemistry coupling

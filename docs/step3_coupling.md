@@ -99,11 +99,42 @@ mapping our DISORT coupled run already uses.
    the lower stratosphere — the RT-engine difference (8-stream vs two-stream) +
    the Fortran's residual top oscillation, not a coupling error. The wiring
    delivers the intended optics.
-3. **Iterate** (next): close the loop — Fortran `T` → `Atmosphere.from_profile` →
-   `solve_bvp_profile` → `microphysics_haze` → rewrite tables → re-run, with `T`
-   under-relaxation, to a fixed point; report the feedback (dT vs d(opacity),
-   gain, stability). Warm-start each Fortran run from the previous `T`
-   (`init_t=1`) to cut cost.
+3. **Iterate** — DONE (`scripts/run_coupled.py`). Closes the loop: prescribed-haze
+   baseline, then `Fortran T → Atmosphere.from_profile → solve_bvp_profile →
+   microphysics_haze → rewrite tables → cold-start re-run`, under-relaxed, with a
+   feedback report + `writing/figs/coupled_feedback.png` + `docs/coupled_history.txt`.
+   Each pass cold-starts (full equilibration) so the residual reflects the
+   feedback, not a half-relaxed engine (an early warm-start version with reduced
+   `num_i` falsely "converged" at the baseline).
+
+## Step 3 result: a strong, near-bistable feedback
+
+The coupled iteration does **not** settle to a single fixed point under naive
+under-relaxation. It oscillates between two attractors:
+
+- **warm**: stratopause $\sim\!183\,\mathrm{K}$ at $8\,\mathrm{Pa}$ (close to the
+  prescribed-haze baseline, $184.5\,\mathrm{K}$);
+- **cool**: stratopause $\sim\!131$–$135\,\mathrm{K}$ at $1.3$–$1.7\,\mathrm{Pa}$
+  (the microphysics-haze state; matches the one-shot's $131\,\mathrm{K}$).
+
+They are **anti-correlated** — a warm $T$ makes a haze that radiates to a cool
+equilibrium and vice-versa, i.e. period-2 oscillation. With `relax=0.5` the loop
+damped toward $\sim\!133\,\mathrm{K}$ (iters 2–5, `max|dT|` $60\to6\,\mathrm{K}$)
+but then jumped back to the warm state — a near-discontinuity around
+$T\approx137\,\mathrm{K}$ (a $1.3\,\mathrm{K}$ input change flipped the output
+$48\,\mathrm{K}$). So the radiative$\leftrightarrow$microphysical feedback is
+**strong and destabilising** (the stratopause-warming haze feedback has gain
+$>1$ near the cool branch), with a sharp transition between branches.
+
+**Implication / next steps.** A converged fixed point needs (a) harder damping
+(`relax<=0.25`, now the default) and more iterations, and/or (b) a continuation /
+root-finding method (e.g. solve $T = F(\mathrm{haze}(T))$ with a damped Newton or
+bisection on a scalar feedback parameter) rather than fixed-point iteration. The
+two-branch structure is itself the headline Step-3 finding: Titan's haze feedback
+is strong enough to be bistable in this 1-D coupled model. Whether the cool
+branch is physical or an artifact of the sharp microphysics transition at
+$\sim\!137\,\mathrm{K}$ is the question to resolve next (inspect `n*Nbar` and the
+column $\tau$ across the transition).
 
 ## Risks / decisions to make
 
