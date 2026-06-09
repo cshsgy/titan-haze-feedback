@@ -41,21 +41,29 @@ class Fluxes:
 def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
                    solar: SolarForcing | None = None, nstr: int = 8,
                    cia: CIABands | None = None, comp: Composition | None = None,
-                   ck=None) -> Fluxes:
+                   ck=None, ck_lw=None) -> Fluxes:
     """Run both bands once and return fluxes + heating rates.
 
-    Longwave: spectral, with collision-induced absorption (N2-N2, N2-CH4,
-    CH4-CH4, N2-H2).  Shortwave: correlated-k CH4 (``ck`` a
-    :class:`rt.correlated_k.CorrelatedKSW`) if provided, else the gray placeholder.
+    Longwave: collision-induced absorption + (if ``ck_lw`` given) correlated-k
+    gas lines (CH4/C2H2/C2H6/C2H4/HCN) + IR haze.  Shortwave: correlated-k CH4
+    (``ck``) + spectral haze if ``ck`` given, else the gray placeholder.
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = cia or CIABands()
 
-    tau_lw, ssa_lw, g_lw = longwave_optics_spectral(column, micro, cia, op, comp)
-    lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, g_lw, column.T,
-                                        cia.band_lo, cia.band_hi, albedo=0.0,
-                                        nstr=nstr)
+    if ck_lw is not None:
+        from .optics import longwave_optics_ck
+        tau_lw, ssa_lw, blo, bhi, wlw = longwave_optics_ck(column, micro, cia,
+                                                           ck_lw, op, comp)
+        lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, None, column.T,
+                                            blo, bhi, albedo=0.0, nstr=nstr,
+                                            weights=wlw)
+    else:
+        tau_lw, ssa_lw, g_lw = longwave_optics_spectral(column, micro, cia, op, comp)
+        lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, g_lw, column.T,
+                                            cia.band_lo, cia.band_hi, albedo=0.0,
+                                            nstr=nstr)
 
     if ck is not None:
         from .optics import shortwave_optics_ck
@@ -151,10 +159,11 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = CIABands()                       # build the CIA table once
-    ck = None
+    ck = ck_lw = None
     if use_ck:
-        from .correlated_k import CorrelatedKSW
+        from .correlated_k import CorrelatedKSW, CorrelatedKLW
         ck = CorrelatedKSW(sma_au=9.58)        # Titan ~9.58 AU
+        ck_lw = CorrelatedKLW()                # IR gas lines (C2H2/HCN/C2H6/...)
     T_surf = column.T[0]
     T_lyr = column.T_mid.copy()            # layer-mean temperature is the state
     z_mid, dP = column.z_mid, column.dP
@@ -164,7 +173,7 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     for it in range(n_iter):
         T_lev = _levels_from_layers(column, T_lyr, T_surf)
         col = Column(column.z, T_lev, column.P, column.g)
-        fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia, ck=ck)
+        fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia, ck=ck, ck_lw=ck_lw)
         # residual on convectively-stable (radiative) layers -- convective layers
         # are set by the adjustment, not by local radiative balance
         if convective:

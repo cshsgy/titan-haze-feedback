@@ -64,18 +64,25 @@ def main():
     run_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else \
         ROOT / "src" / "example_bowen_fort"
 
-    # our model
+    from rt.optics import OpticsParams
+    # our model -- microphysics haze (the coupled mode) and prescribed haze (RT
+    # validation: same haze the Fortran uses)
     atm = Atmosphere.titan_reference()
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
     eq, _ = radiative_equilibrium(col, micro)
     fx = compute_fluxes(eq, micro, ck=CorrelatedKSW(sma_au=9.58))
 
+    print("prescribed-haze run (RT validation) ...")
+    op_presc = OpticsParams(prescribed_haze=True)
+    eqp, _ = radiative_equilibrium(col, micro, op=op_presc, n_iter=2500)
+
     fort = load_fortran(run_dir)
 
-    # compare vs PRESSURE (both models share the pressure coordinate)
+    # compare vs PRESSURE (all share the pressure coordinate)
     fig, ax = plt.subplots(1, 2, figsize=(11, 5.5))
-    ax[0].plot(eq.T, eq.P, "r-", lw=1.8, label="this work (DISORT)")
+    ax[0].plot(eq.T, eq.P, "r-", lw=1.8, label="this work (microphysics haze)")
+    ax[0].plot(eqp.T, eqp.P, "C2-", lw=1.8, label="this work (prescribed haze)")
     ax[1].plot(fx.sw_heating, eq.P_mid, "C0", label="SW (this work)")
     ax[1].plot(fx.lw_heating, eq.P_mid, "C1", label="LW (this work)")
 

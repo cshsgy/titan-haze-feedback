@@ -157,17 +157,19 @@ prescribed haze (Doose 2016): $\omega_0\!\to\!0$ in the UV (pure absorber),
 rising to $\sim\!0.9$ in the near-IR, and a near-pure absorber in the thermal
 IR---and the gas.
 
-The longwave gas opacity is \emph{real collision-induced absorption}, the
-dominant thermal-IR continuum on Titan. We read the HITRAN CIA coefficients
-\citep{Karman2019} for the N$_2$--N$_2$, N$_2$--CH$_4$, CH$_4$--CH$_4$, and
-N$_2$--H$_2$ pairs, band-average them onto $\sim\!33$ far-IR bands
-($10$--$1000\,\mathrm{cm^{-1}}$, the range where CIA and the Planck function
-overlap at $70$--$200\,\mathrm{K}$), and form the per-layer optical depth
-$\tau(\nu)=\sum_{\rm pairs} k_{AB}(\nu,T)\,n_A n_B\,\Delta z$ from the pair
-number-density products. The N$_2$--N$_2$ roto-translational band makes the
-far-IR strongly opaque (column $\tau\!\gtrsim\!100$ near $50$--$100\,\mathrm{cm^{-1}}$,
-falling below unity beyond $\sim\!300\,\mathrm{cm^{-1}}$; Fig.~\ref{fig:ebal},
-right), which is the origin of Titan's pressure-induced greenhouse.
+The longwave combines two sources on a common $40$-band IR grid
+($0$--$2000\,\mathrm{cm^{-1}}$, $50\,\mathrm{cm^{-1}}$ bands). First, \emph{real
+collision-induced absorption}---the dominant thermal-IR continuum on Titan---from
+the HITRAN CIA coefficients \citep{Karman2019} for N$_2$--N$_2$, N$_2$--CH$_4$,
+CH$_4$--CH$_4$, and N$_2$--H$_2$, as $\tau(\nu)=\sum_{\rm pairs}
+k_{AB}(\nu,T)\,n_A n_B\,\Delta z$; the N$_2$--N$_2$ roto-translational band makes
+the far-IR strongly opaque (column $\tau\!\gtrsim\!100$ near
+$50$--$100\,\mathrm{cm^{-1}}$), the origin of Titan's pressure-induced
+greenhouse. Second, \emph{correlated-k gas lines} for the stratospheric coolants
+CH$_4$, C$_2$H$_2$, C$_2$H$_6$, C$_2$H$_4$, and HCN (the same IR $k$-tables and
+$10$-Gauss grid as the shortwave), summed under the perfectly-correlated
+assumption with each gas's VMR profile. Both gases and CIA, plus a pure-absorber
+IR haze, are solved per (band, Gauss-point) with a band-integrated Planck source.
 
 The \emph{shortwave} methane opacity is treated with correlated-$k$, using the
 same visible CH$_4$ $k$-table as the reference Fortran model ($42$ bands $\times$
@@ -191,31 +193,28 @@ Cold space is imposed as the top boundary (a thermal emission temperature of
 $2.7\,\mathrm{K}$, not the atmosphere's top temperature); without this the
 column spuriously absorbs downwelling longwave and overheats.
 
-The solver reaches a genuine steady state: with correlated-$k$ methane and the
-spectral haze, $\sim\!\SI{4.0}{W.m^{-2}}$ of shortwave is absorbed (close to the
-$\sim\!\SI{4.5}{W.m^{-2}}$ of \citealp{Tomasko2008heat}) against the outgoing
-longwave, energy closed to $\sim\!0.1\,\mathrm{W\,m^{-2}}$ with a converged
-net-heating residual below $1\,\mathrm{K}$ per Titan day. The equilibrium profile
-(Fig.~\ref{fig:ebal}) has the right vertical structure---a stratopause near
-$115\,\mathrm{K}$ ($\sim\!300\,\mathrm{Pa}$), a cold tropopause near
-$74\,\mathrm{K}$, and a $\sim\!92\,\mathrm{K}$ surface---but the stratosphere is
-still $\sim\!80\,\mathrm{K}$ cooler than observed.
+The solver reaches a genuine steady state with $\sim\!\SI{4.0}{W.m^{-2}}$ of
+shortwave absorbed (close to the $\sim\!\SI{4.5}{W.m^{-2}}$ of
+\citealp{Tomasko2008heat}), energy closed to $\sim\!0.1\,\mathrm{W\,m^{-2}}$.
+Driven by the Step~2 microphysics haze it has the right vertical structure---a
+stratopause ($\sim\!300\,\mathrm{Pa}$), a cold tropopause near $74\,\mathrm{K}$,
+a $\sim\!92\,\mathrm{K}$ surface---but a stratosphere $\sim\!80\,\mathrm{K}$ too
+cold (Fig.~\ref{fig:ebal}, red).
 
-The shortwave upgrades above each helped the budget (correlated-$k$ CH$_4$ adds
-$\approx\!\SI{1.4}{W.m^{-2}}$; the spectral haze raises absorbed shortwave from
-$2.8$ to $\SI{4.0}{W.m^{-2}}$) but moved the stratopause temperature only
-modestly. We trace the residual cold bias to two effects that are deeper than the
-shortwave single-scattering properties: (i) the haze optical-depth \emph{magnitude}
----using the mobility radius for the optical cross-section overestimates the
-extinction of large fractal aggregates, giving a column optical depth several
-times the observed value, which distorts where sunlight is deposited; and (ii) the
-longwave cooling, which here is collision-induced absorption plus haze emission
-only and lacks the C$_2$H$_2$/C$_2$H$_6$/HCN rotational-line opacity that shapes
-the real stratospheric energy balance. A proper mean-field aggregate optics
-treatment and gas-line longwave cooling are therefore the next refinements. The
-correlated-$k$ shortwave methane, spectral haze, real-CIA longwave, energy
-closure, and haze$\rightarrow$optics$\rightarrow$DISORT coupling are in place,
-which is what Step~3 requires.
+To localize this deficit we ran the \emph{same} radiative engine on the
+observationally-prescribed haze (the optical depths the reference model uses)
+instead of the microphysics haze. It then reaches a $\sim\!200\,\mathrm{K}$
+stratopause, matching the reference (Fig.~\ref{fig:fortran}, green vs.\ black) ---
+so the radiation physics (correlated-$k$ CH$_4$ shortwave, spectral haze, CIA,
+correlated-$k$ gas-line longwave, convective adjustment, energy closure) is
+\emph{correct}, and the entire $\sim\!80\,\mathrm{K}$ cold bias is the
+microphysics haze: our Step~2 haze places too much optical depth too low and too
+much in total (the mobility-radius optical cross-section overestimates large-
+aggregate extinction, giving a column optical depth several times observed). This
+is a Step~2 microphysics$\to$optics calibration issue (mean-field aggregate
+optics), not a radiation one. The validated radiation engine, energy closure, and
+haze$\rightarrow$optics$\rightarrow$DISORT coupling are in place, which is what
+Step~3 requires.
 
 \begin{figure}[t]
   \centering
@@ -240,30 +239,29 @@ haze, run to radiative--convective equilibrium on a $100$-layer column under
 diurnally-averaged insolation (the diurnal cycle disabled for faster
 convergence). Both models are at steady state.
 
-Figure~\ref{fig:fortran} overlays the two on a shared pressure coordinate. They
-share the same vertical \emph{structure}---a stratopause, a cold tropopause near
-$70$--$74\,\mathrm{K}$, and a $\sim\!90\,\mathrm{K}$ surface---but the reference
-model's stratopause is warmer ($\sim\!195\,\mathrm{K}$ vs.\ our
-$\sim\!115\,\mathrm{K}$). The two models now share the same shortwave gas
-(correlated-$k$ CH$_4$, same $k$-table) and the same observational haze
-single-scattering spectra, yet the gap persists---so it is neither the gas nor
-the haze $\omega_0,g$. It traces instead to (i) our haze optical-depth
-\emph{magnitude} (the mobility-radius cross-section overestimates large-aggregate
-extinction, so our column optical depth exceeds the observed by several times)
-and (ii) the longwave: the reference model includes C$_2$H$_2$/C$_2$H$_6$/HCN
-rotational-line cooling, whereas ours has only CIA plus haze emission. The two
-models agree most closely in the dense lower atmosphere, where CIA dominates the
-longwave---consistent with that being the part our physics already captures. A
-mean-field aggregate optics treatment (for the cross-section) and gas-line
-longwave cooling are the remaining upgrades.
+Figure~\ref{fig:fortran} overlays three profiles on a shared pressure
+coordinate. Driven by the Step~2 microphysics haze (red), our model has the right
+structure but a $\sim\!115\,\mathrm{K}$ stratopause versus the reference's
+$\sim\!195\,\mathrm{K}$. Driven instead by the \emph{prescribed} haze (green)---
+the observational optical depths the reference uses, in the same radiative
+engine---our model reaches $\sim\!200\,\mathrm{K}$ and tracks the reference
+(black) closely through the stratosphere and mesosphere. This isolates the
+discrepancy cleanly: the radiation is right (the engine reproduces the reference
+given the same haze), and the cold bias of the coupled run is entirely the
+microphysics haze---its optical depth is too large and deposited too low (the
+mobility-radius optical cross-section overestimates large-aggregate extinction).
+The remaining upgrade is therefore in Step~2 (mean-field aggregate optics for the
+haze cross-section), not in the radiation.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{figs/fortran_comparison.png}
-  \caption{This work (DISORT, red/blue/orange) versus a reference TAM-lineage
-    correlated-$k$ Fortran model (black) on a shared pressure coordinate. Left:
-    temperature. Right: shortwave heating and longwave cooling. The temperature
-    profiles agree to within a few kelvin through most of the column.}
+  \caption{Our DISORT energy balance with the Step~2 \emph{microphysics} haze
+    (red) and with the observational \emph{prescribed} haze (green), versus the
+    reference TAM-lineage correlated-$k$ Fortran model (black), on a shared
+    pressure axis. With the same haze the engines agree (green vs.\ black); the
+    red--green gap is the microphysics haze. Right: shortwave heating and
+    longwave cooling.}
   \label{fig:fortran}
 \end{figure}
 

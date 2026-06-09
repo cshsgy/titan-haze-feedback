@@ -111,20 +111,22 @@ def solve_shortwave_spectral(tau, ssa, g_wave, fbeam, weights, umu0,
 
 
 def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
-                            albedo=0.0, nstr=8):
-    """Multi-band thermal DISORT solve with the Planck source.
+                            albedo=0.0, nstr=8, weights=None):
+    """Multi-wave thermal DISORT solve with the Planck source.
 
-    ``tau, ssa, g`` are (nband, nlyr) ascending-in-altitude.  Each band uses its
-    own ``[band_lo, band_hi]`` wavenumber limits for the band-integrated Planck
-    source.  Gas CIA and IR haze are pure absorbers, so ``ssa = g = 0`` and the
-    phase-function moments are left at zero (isotropic, irrelevant when ssa=0).
-    Returns the band-summed net downward flux at levels (ascending); thermal
-    cooling is the divergence of the net upward flux.
+    ``tau, ssa, g`` are (nwave, nlyr) ascending-in-altitude; each wave has its
+    own ``[band_lo, band_hi]`` Planck limits.  For correlated-k a wave is a
+    (band, Gauss-point) pair: pass ``band_lo/band_hi`` repeated per Gauss-point
+    and ``weights`` the Gauss weights (default: all 1, i.e. a pure band sum, as
+    for CIA-only).  Gas + IR haze are pure absorbers (ssa=0, isotropic).  Returns
+    the weight-summed net downward flux at levels (ascending); thermal cooling is
+    the divergence of the net upward flux.
     """
     tau = np.asarray(tau, float)
     nband, nlyr = tau.shape
     band_lo = np.asarray(band_lo, float)
     band_hi = np.asarray(band_hi, float)
+    w = np.ones(nband) if weights is None else np.asarray(weights, float)
 
     op = DisortOptions().flags("onlyfl,lamber,planck").nwave(nband).ncol(1)
     op.ds().nlyr = nlyr
@@ -149,7 +151,7 @@ def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
                ttemp=torch.tensor([2.7]),
                temis=torch.zeros((nband, 1)),
                albedo=torch.full((nband, 1), float(albedo)))
-    f = ds.gather_flx()[:, 0].numpy()                 # (nband, nlvl, 8), top-down
+    f = ds.gather_flx()[:, 0].numpy()                 # (nwave, nlvl, 8), top-down
     net_td = (f[:, :, pydisort.kIRFLDIR] + f[:, :, pydisort.kIFLDN]
               - f[:, :, pydisort.kIFLUP])
-    return net_td.sum(axis=0)[::-1].copy()            # band-summed, ascending
+    return (net_td * w[:, None]).sum(axis=0)[::-1].copy()   # weight-summed, ascending

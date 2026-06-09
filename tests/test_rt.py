@@ -85,6 +85,40 @@ def test_correlated_k_ch4_shortwave():
     assert sw[0] > 0                              # some sunlight reaches the surface
 
 
+def test_correlated_k_lw_gas_lines():
+    """Longwave correlated-k loads all 5 IR coolants and gives sane band optics."""
+    from rt.correlated_k import CorrelatedKLW
+    _, _, col = _setup()
+    cklw = CorrelatedKLW()
+    assert set(cklw.gases) == {"CH4", "C2H2", "C2H6", "C2H4", "HCN"}
+    assert cklw.nband == 40 and cklw.ngauss == 10
+    tau = cklw.layer_tau(col)                      # (nband, ngauss, nlyr)
+    assert tau.shape[0] == 40 and np.all(tau >= 0) and np.all(np.isfinite(tau))
+    # the C2H2/HCN coolant bands (~700-800 cm^-1) carry real opacity
+    bc = 0.5 * (cklw.band_lo + cklw.band_hi)
+    j = int(np.argmin(np.abs(bc - 730)))
+    assert tau[j].max() > 0
+
+
+def test_prescribed_haze_path():
+    """Prescribed-haze optics deposit more shortwave aloft than microphysics haze."""
+    from rt.optics import shortwave_optics_ck, OpticsParams, prescribed_haze_layer_tau
+    from rt.correlated_k import CorrelatedKSW
+    _, micro, col = _setup()
+    ck = CorrelatedKSW(sma_au=9.58)
+    hp = prescribed_haze_layer_tau(col, ck.bands, kind="v")
+    assert hp.shape[0] == ck.nband and np.all(hp >= 0)
+    # prescribed visible column optical depth is order-unity-to-ten (observational)
+    bc = ck.bands
+    jv = int(np.argmin(np.abs(bc - 20000)))
+    assert 0.5 < hp[jv].sum() < 30.0
+    # both microphysics and prescribed paths run
+    for presc in (False, True):
+        op = OpticsParams(prescribed_haze=presc)
+        tau, ssa, g, fb, w = shortwave_optics_ck(col, micro, ck, op)
+        assert np.all(np.isfinite(tau)) and np.all((ssa >= 0) & (ssa <= 1))
+
+
 def test_spectral_haze_sw():
     """Spectral haze single-scattering albedo is wavelength-dependent and absorbs
     strongly in the UV (omega0 -> 0), unlike a gray albedo."""

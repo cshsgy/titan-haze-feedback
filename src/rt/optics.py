@@ -42,6 +42,35 @@ def _parse_preschaze(field: str):
     return wn, pl, data
 
 
+def prescribed_haze_layer_tau(column, band_centers, kind="v"):
+    """Per-layer haze optical depth from the observational prescribed haze.
+
+    The preschaze<kind>_tau.txt files give the *cumulative* haze optical depth
+    (top-down) on a (wavenumber, pressure) grid; we interpolate to the model band
+    centres and level pressures, then difference to per-layer tau[nband, nlyr].
+    ``kind`` is 'v' (visible/SW) or 'i' (IR/LW).
+    """
+    wn, pl, data = _parse_preschaze("tau") if kind == "v" else _parse_preschaze_i("tau")
+    bc = np.asarray(band_centers, float)
+    Plev = column.P
+    o = np.argsort(pl)
+    # cumulative tau(band, pl): interpolate the (npl, nw) table to band centres
+    tau_bp = np.vstack([np.interp(bc, wn, data[ip]) for ip in range(pl.size)]).T  # (nband, npl)
+    # interpolate to the model level pressures
+    cum = np.vstack([np.interp(Plev, pl[o], tau_bp[b][o]) for b in range(bc.size)])  # (nband, nlvl)
+    # per-layer = difference of cumulative tau between bounding levels
+    return np.maximum(np.abs(np.diff(cum, axis=1)), 0.0)                            # (nband, nlyr)
+
+
+def _parse_preschaze_i(field: str):
+    L = (_DATA / f"preschazei_{field}.txt").read_text().split("\n")
+    nw, npl = int(L[1]), int(L[2])
+    wn = np.array(L[3].split(), float)
+    pl = np.array(L[4].split(), float)
+    data = np.array([L[5 + i].split() for i in range(npl)], float)
+    return wn, pl, data
+
+
 @lru_cache(maxsize=8)
 def spectral_haze_sw(band_centers_key):
     """Observational haze single-scattering albedo and asymmetry per SW band.
@@ -73,6 +102,7 @@ class OpticsParams:
     tau_gas_sw: float = 2.0      # total shortwave gas (CH4-like) optical depth
     ssa_gas_sw: float = 0.0      # gas absorbs in SW (Rayleigh scattering ignored)
     tau_gas_lw_gray: float = 0.0  # optional extra gray LW continuum (lines); CIA is explicit
+    prescribed_haze: bool = False  # use observational prescribed haze instead of microphysics
 
 
 def haze_extinction_per_length(n, r_a, p: OpticsParams):
@@ -121,6 +151,36 @@ def shortwave_optics(column, micro, p: OpticsParams):
     return combine(th, p.ssa_haze_sw, p.g_haze_sw, tg, p.ssa_gas_sw, 0.0)
 
 
+def longwave_optics_ck(column, micro, cia, ck_lw, p: OpticsParams, comp=None):
+    """Correlated-k longwave optics: per (band, Gauss-point) wave.
+
+    Sums the gas correlated-k optical depth (CH4/C2H2/C2H6/C2H4/HCN rotational
+    lines, the stratospheric coolants), the collision-induced absorption, and the
+    (gray, pure-absorber) IR haze.  Everything is absorption, so ssa=0.  Returns
+    (tau, ssa, band_lo, band_hi, weights) with tau/ssa (nwave, nlyr) ascending,
+    band edges repeated per Gauss-point, weights the Gauss weights.  CIA and the
+    gas k-table share the same band grid.
+    """
+    tau_gas = ck_lw.layer_tau(column)                 # (nband, ngauss, nlyr)
+    tau_cia = cia.optical_depth(column, comp)         # (nband, nlyr)
+    nb, ng, nlyr = tau_gas.shape
+    if p.prescribed_haze:
+        haze_band = prescribed_haze_layer_tau(column, ck_lw.bands, kind="i")  # (nb, nlyr)
+    else:
+        haze_band = np.broadcast_to(layer_haze_tau(column, micro, p), (nb, nlyr))
+    nwave = nb * ng
+    tau = np.empty((nwave, nlyr))
+    for b in range(nb):
+        base = tau_cia[b] + haze_band[b]              # (nlyr,) absorbers shared over g
+        for gi in range(ng):
+            tau[b * ng + gi] = tau_gas[b, gi] + base
+    ssa = np.zeros((nwave, nlyr))
+    band_lo = np.repeat(ck_lw.band_lo, ng)
+    band_hi = np.repeat(ck_lw.band_hi, ng)
+    weights = np.tile(ck_lw.gw, nb)
+    return tau, ssa, band_lo, band_hi, weights
+
+
 def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
     """Correlated-k shortwave optics: per (band, Gauss-point) wave.
 
@@ -133,14 +193,18 @@ def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
     lowers ``ssa`` without changing the (haze) phase function.
     """
     tau_gas = ck.layer_tau(column, comp)              # (nband, ngauss, nlyr)
-    tau_haze = layer_haze_tau(column, micro, p)       # (nlyr,)
     nb, ng, nlyr = tau_gas.shape
+    if p.prescribed_haze:
+        haze_band = prescribed_haze_layer_tau(column, ck.bands, kind="v")  # (nb, nlyr)
+    else:
+        haze_band = np.broadcast_to(layer_haze_tau(column, micro, p), (nb, nlyr))
     nwave = nb * ng
     omega0_b, g_b = spectral_haze_sw(tuple(np.round(ck.bands, 3)))   # per band
     tau = np.empty((nwave, nlyr))
     ssa = np.empty((nwave, nlyr))
     g_wave = np.empty(nwave)
     for b in range(nb):
+        tau_haze = haze_band[b]                        # (nlyr,)
         sca_haze = omega0_b[b] * tau_haze             # haze scattering opt depth (nlyr)
         for gi in range(ng):
             w = b * ng + gi

@@ -25,6 +25,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 _CKC = _ROOT / "src" / "example_bowen_fort" / "INPUT" / "DATA" / "ckc_CH4vis.txt"
 _SOLAR = _ROOT / "src" / "example_bowen_fort" / "INPUT" / "DATA" / "solar_spectrum_houghton.txt"
 
+# longwave band edges (bwni): 0-2000 cm^-1 in 50 cm^-1 bands (centres 25..1975),
+# matching the IR correlated-k gas tables ckc_<gas>ir.txt
+BWNI = np.arange(0.0, 2001.0, 50.0)
+IR_GASES = ("CH4", "C2H2", "C2H6", "C2H4", "HCN")
+
 # shortwave band edges (bwnv): 1e6 / wavelength[nm], identical to the Fortran
 _WL_NM = np.array([600, 550, 500, 450, 400, 350, 300,
                    250, 240, 230, 220, 210, 200, 190, 180, 170, 160,
@@ -110,4 +115,72 @@ class CorrelatedKSW:
         tau = np.zeros((self.nband, self.ngauss, nlyr))
         for l in range(nlyr):
             tau[:, :, l] = self._interp_k(P[l], T[l]) * col_abund[l]
+        return np.maximum(tau, 0.0)
+
+
+def _interp_ktable(k, logp, temp, P, T):
+    """Interpolate a k-table k[kP,kT,nband,ngauss] to scalar (P,T) -> (nband,ngauss)."""
+    lp = np.log(np.clip(P, np.exp(logp[0]), np.exp(logp[-1])))
+    jp = int(np.clip(np.searchsorted(logp, lp) - 1, 0, logp.size - 2))
+    fp = (lp - logp[jp]) / (logp[jp + 1] - logp[jp])
+    kP = (1 - fp) * k[jp] + fp * k[jp + 1]
+    Tc = np.clip(T, temp[0], temp[-1])
+    jt = int(np.clip(np.searchsorted(temp, Tc) - 1, 0, temp.size - 2))
+    ft = (Tc - temp[jt]) / (temp[jt + 1] - temp[jt])
+    return (1 - ft) * kP[jt] + ft * kP[jt + 1]
+
+
+class CorrelatedKLW:
+    """Correlated-k longwave gas opacity for the IR coolants.
+
+    Loads the CH4/C2H2/C2H6/C2H4/HCN visible-IR k-tables (ckc_<gas>ir.txt; same
+    20x10 P-T grid and 10 Gauss points as the shortwave) and the gas VMR profiles
+    (profile_<gas>.txt).  The per-(band, Gauss) optical depth sums the gases under
+    the perfectly-correlated assumption (shared Gauss ordering),
+    tau(band,g) = sum_gas k_gas(band,g,P,T) * u_gas, with u_gas the gas column
+    abundance [km-amagat].  These are the C2H2/HCN/C2H6 rotational-line coolants
+    that CIA alone omits.
+    """
+
+    def __init__(self, gases=IR_GASES):
+        self.gases = list(gases)
+        self.k = {}
+        ref = None
+        for g in self.gases:
+            d = parse_ckc(_ROOT / "src" / "example_bowen_fort" / "INPUT" / "DATA"
+                          / f"ckc_{g}ir.txt")
+            self.k[g] = d["k"]                    # (kP, kT, nband, ngauss)
+            ref = d
+        self.bands = ref["bands"]
+        self.gw = ref["gw"]
+        self.pres = ref["pres"]
+        self.temp = ref["temp"]
+        self.logp = np.log(self.pres)
+        self.nband = self.bands.size
+        self.ngauss = self.gw.size
+        self.band_lo = BWNI[:-1]
+        self.band_hi = BWNI[1:]
+        # VMR(logP) profiles
+        self.vmr = {}
+        for g in self.gases:
+            d = np.loadtxt(_ROOT / "src" / "example_bowen_fort" / "INPUT" / "DATA"
+                           / f"profile_{g}.txt")
+            self.vmr[g] = (np.log(d[:, 0]), d[:, 1])
+
+    def _vmr(self, gas, P):
+        lp, v = self.vmr[gas]
+        return np.interp(np.log(P), lp, v)
+
+    def layer_tau(self, column):
+        """Combined gas LW optical depth tau[nband, ngauss, nlyr]."""
+        T, P = column.T_mid, column.P_mid
+        nlyr = T.size
+        amg = P / (R_GAS * T) * MOLE_TO_AMG * (column.dz / 1e3)   # total km-amg/layer
+        tau = np.zeros((self.nband, self.ngauss, nlyr))
+        for l in range(nlyr):
+            acc = np.zeros((self.nband, self.ngauss))
+            for g in self.gases:
+                u = self._vmr(g, P[l]) * amg[l]
+                acc += _interp_ktable(self.k[g], self.logp, self.temp, P[l], T[l]) * u
+            tau[:, :, l] = acc
         return np.maximum(tau, 0.0)

@@ -36,9 +36,10 @@ _RAW_FILES = {
     "CH4-CH4": "CH4-CH4_2011.cia",
 }
 
-# default longwave band edges [cm^-1]: far-IR continuum where CIA + Planck
-# dominate for Titan temperatures (70-200 K); ~33 bands of 30 cm^-1.
-DEFAULT_LW_EDGES = np.arange(10.0, 1010.0, 30.0)
+# default longwave band edges [cm^-1]: match the IR correlated-k gas bands
+# (bwni: 0-2000 cm^-1 in 50 cm^-1 bands, centres 25..1975) so CIA and the gas
+# k-tables share one band grid.
+DEFAULT_LW_EDGES = np.arange(0.0, 2001.0, 50.0)
 
 # Titan-relevant temperature grid for the table [K]
 DEFAULT_T_GRID = np.arange(70.0, 230.0, 10.0)

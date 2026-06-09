@@ -158,19 +158,18 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 ## Status
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
-- [~] Step 1 — DISORT energy balance (`src/rt/`) via pydisort: **correlated-k CH₄
-      shortwave** (`correlated_k.py`) + **spectral haze optics** (observational
-      ω₀(λ)/g(λ), `optics.spectral_haze_sw`) + **multiband longwave with real HITRAN
-      CIA** (N₂–N₂, N₂–CH₄, CH₄–CH₄, N₂–H₂), haze from Step 2. Genuine
-      radiative–convective steady state (residual <1 K/day, energy closed to
-      ~0.1 W/m²; SW absorbed ~4 W/m², near Tomasko's 4.5): stratopause ~115 K, cold
-      tropopause ~74 K, ~92 K surface. Still ~80 K cooler than observed in the
-      stratosphere — the gap is **not** the SW gas/haze single-scattering (both now
-      spectral) but (i) the haze optical-depth magnitude (mobility-radius
-      cross-section overestimates large-aggregate extinction) and (ii) LW gas-line
-      cooling (C₂H₂/C₂H₆/HCN), which our CIA-only LW lacks. Next: mean-field
-      aggregate optics + gas-line LW. Cross-validated vs `example_bowen_fort`
-      (full physics, observed ~195 K stratopause).
+- [x] Step 1 — DISORT energy balance (`src/rt/`) via pydisort, **physics complete
+      and validated**: **correlated-k CH₄ shortwave** + **spectral haze ω₀(λ)/g(λ)**
+      + **longwave = HITRAN CIA (N₂–N₂/N₂–CH₄/CH₄–CH₄/N₂–H₂) + correlated-k gas
+      lines (CH₄/C₂H₂/C₂H₆/C₂H₄/HCN)** + convective adjustment. Genuine
+      radiative–convective steady state, energy closed to ~0.1 W/m². **Validation:**
+      run on the *prescribed* (observational) haze the engine reaches a ~200 K
+      stratopause, matching the reference Fortran model (`example_bowen_fort`, ~195 K)
+      — so the radiation is correct. Driven by the **Step 2 microphysics haze** it is
+      ~80 K colder in the stratosphere; that gap is isolated to the Step 2
+      haze→optics cross-section (mobility radius overestimates large-aggregate
+      extinction → column optical depth several× observed), not the radiation. Next
+      refinement is in Step 2 (mean-field aggregate optics).
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration
