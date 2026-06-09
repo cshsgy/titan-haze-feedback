@@ -98,3 +98,39 @@ but affects exactly where sources are evaluated.
    atmosphere above ~415 km.
 3. Optionally match the **CIA** treatment (exp-sum fits) and add **surface LW
    reflection** + **delta-scaling** for closer one-to-one agreement.
+
+## Fixes applied (maximizing the match)
+
+The solvable discrepancies above were implemented behind `OpticsParams.match_fortran`
+(default on), bringing the two engines into close agreement through the *entire*
+column, not just the bulk:
+
+| pressure | SW ours | SW Fortran | LW ours | LW Fortran |
+|---|---|---|---|---|
+| 1 Pa   | 61  | 82  | **−45** | **−57** |
+| 3 Pa   | 46  | 47  | −25 | −22 |
+| 8 Pa   | 37  | 37  | −23 | −28 |
+| 25 Pa  | 25  | 24  | −13 | −15 |
+| 72 Pa  | 13  | 13  | −6.0| −6.6 |
+| 200 Pa | 4.6 | 5.0 | −2.7| −3.0 |
+| 1.8 kPa| 0.27| 0.30| −0.16| −0.14|
+
+What changed:
+- **Longwave top BC (#1).** Replaced cold space with a **warm downwelling top**:
+  the truncated atmosphere above the model top emits at the top-level temperature
+  with effective emissivity ε = 1 − exp(−τ_above/μ̄), τ_above = `LW_TOP_SCALE`·τ_top·
+  (P_top/ΔP_top), μ̄ = 0.5. `LW_TOP_SCALE = 0.02` (tuned) brings the 1 Pa cooling
+  from −102 → −45 K/day (Fortran −57). Passed via `P_levels_ascending` to
+  `solve_longwave_spectral`.
+- **Rayleigh scattering (#3).** Added a pure-scattering (ω₀=1, g=0) molecular
+  component to the shortwave optics (`rayleigh_band_tau`, τ_ray = Δp[mbar]·coef(ν),
+  `Rayleigh.txt`); the per-wave asymmetry is scattering-weighted so the haze
+  forward peak is correctly diluted.
+- **Surface LW reflection (#5).** Longwave surface albedo 0.05 (ε = 0.95).
+- **Surface SW albedo.** Visible albedo set to 0.15 (`albv`) to match.
+
+Remaining gaps are the **near-massless top layer** (1 Pa: SW 61 vs 82, LW −45 vs
+−57), where multi-stream DISORT (#2) and the Fortran two-stream inherently differ,
+and the unmatched **CIA exp-sum fit (#4)** and **delta-scaling (#6)** — left as-is
+since the net bulk effect already agrees. Set `match_fortran=False` to recover the
+physically-pure boundaries (cold space, no Rayleigh, black surface).

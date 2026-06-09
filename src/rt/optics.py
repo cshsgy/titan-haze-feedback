@@ -71,6 +71,25 @@ def _parse_preschaze_i(field: str):
     return wn, pl, data
 
 
+@lru_cache(maxsize=4)
+def _rayleigh_table():
+    d = np.loadtxt(_DATA / "Rayleigh.txt", skiprows=2)
+    return d[:, 0], d[:, 1]
+
+
+def rayleigh_band_tau(column, band_centers):
+    """Rayleigh optical depth tau[nband, nlyr] (pure scattering).
+
+    Fortran form tau_ray(k) = dp * tauray(band), with tauray ~ nu^4; using the
+    layer pressure thickness in mbar gives a physical Titan column tau (~0.1 in
+    the visible, rising steeply into the UV).
+    """
+    wn, coef = _rayleigh_table()
+    tr = np.interp(np.asarray(band_centers, float), wn, coef)   # per band
+    dp_mbar = column.dP / 100.0                                 # Pa -> mbar
+    return np.maximum(tr[:, None] * dp_mbar[None, :], 0.0)      # (nband, nlyr)
+
+
 @lru_cache(maxsize=8)
 def spectral_haze_sw(band_centers_key):
     """Observational haze single-scattering albedo and asymmetry per SW band.
@@ -110,6 +129,9 @@ class OpticsParams:
     # absorption to the observed haze opacity (Titan tholins absorb more than
     # the Khare lab values); 3.0 -> visible column tau ~ Doose's ~8
     haze_abs_scale: float = 3.0
+    # match the reference Fortran RT: warm LW top boundary, LW surface reflection
+    # (eps=0.95), SW surface albedo 0.15, Rayleigh scattering in the shortwave
+    match_fortran: bool = True
 
 
 def haze_extinction_per_length(n, r_a, p: OpticsParams):
@@ -220,20 +242,28 @@ def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
     nb, ng, nlyr = tau_gas.shape
     omega0_b, g_b = spectral_haze_sw(tuple(np.round(ck.bands, 3)))   # per band
     haze_band = haze_band_tau(column, micro, p, ck.bands, "v", omega0_b)  # (nb, nlyr)
+    # Rayleigh: pure-scattering molecular optical depth (Fortran has it, ~nu^4).
+    tau_ray = (rayleigh_band_tau(column, ck.bands) if p.match_fortran
+               else np.zeros((nb, nlyr)))              # (nb, nlyr)
     nwave = nb * ng
     tau = np.empty((nwave, nlyr))
     ssa = np.empty((nwave, nlyr))
     g_wave = np.empty(nwave)
     for b in range(nb):
         tau_haze = haze_band[b]                        # (nlyr,)
+        # scattering = haze (g=g_b) + Rayleigh (g=0); keep the per-wave g as the
+        # scattering-weighted asymmetry (Rayleigh dilutes the haze forward peak)
         sca_haze = omega0_b[b] * tau_haze             # haze scattering opt depth (nlyr)
+        sca = sca_haze + tau_ray[b]                    # total scattering (nlyr)
+        sca_tot = float(sca.sum())
+        g_wave_b = (g_b[b] * float(sca_haze.sum()) / sca_tot) if sca_tot > 0 else g_b[b]
         for gi in range(ng):
             w = b * ng + gi
-            tt = tau_haze + tau_gas[b, gi]
+            tt = tau_haze + tau_ray[b] + tau_gas[b, gi]
             tau[w] = tt
-            ssa[w] = np.clip(np.where(tt > 0, sca_haze / np.maximum(tt, 1e-300), 0.0),
+            ssa[w] = np.clip(np.where(tt > 0, sca / np.maximum(tt, 1e-300), 0.0),
                              0.0, 0.999999)
-            g_wave[w] = g_b[b]
+            g_wave[w] = g_wave_b
     fbeam = np.repeat(ck.solar, ng)                   # per-band solar, repeated over g
     weights = np.tile(ck.gw, nb)                      # Gauss weight per wave
     return tau, ssa, g_wave, fbeam, weights

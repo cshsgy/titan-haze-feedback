@@ -52,13 +52,17 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
     solar = solar or SolarForcing()
     cia = cia or CIABands()
 
+    # match-Fortran longwave boundaries: warm downwelling top + reflecting
+    # surface (eps = 0.95); otherwise cold-space top + black surface
+    lw_alb = 0.05 if op.match_fortran else 0.0
+    Plev = column.P if op.match_fortran else None
     if ck_lw is not None:
         from .optics import longwave_optics_ck
         tau_lw, ssa_lw, blo, bhi, wlw = longwave_optics_ck(column, micro, cia,
                                                            ck_lw, op, comp)
         lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, None, column.T,
-                                            blo, bhi, albedo=0.0, nstr=nstr,
-                                            weights=wlw)
+                                            blo, bhi, albedo=lw_alb, nstr=nstr,
+                                            weights=wlw, P_levels_ascending=Plev)
     else:
         tau_lw, ssa_lw, g_lw = longwave_optics_spectral(column, micro, cia, op, comp)
         lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, g_lw, column.T,
@@ -67,11 +71,13 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
 
     if ck is not None:
         from .optics import shortwave_optics_ck
+        # match-Fortran surface: visible albedo 0.15 (albv); else the default
+        sw_alb = 0.15 if op.match_fortran else solar.albedo
         tau_sw, ssa_sw, g_haze, fbeam, weights = shortwave_optics_ck(
             column, micro, ck, op, comp)
         sw_net = dd.solve_shortwave_spectral(tau_sw, ssa_sw, g_haze, fbeam,
                                              weights, umu0=solar.umu0,
-                                             albedo=solar.albedo, nstr=nstr)
+                                             albedo=sw_alb, nstr=nstr)
     else:
         tau_sw, ssa_sw, g_sw = shortwave_optics(column, micro, op)
         sw_net = dd.solve_shortwave(tau_sw, ssa_sw, g_sw,

@@ -16,6 +16,10 @@ from pydisort import DisortOptions, Disort, scattering_moments
 
 torch.set_default_dtype(torch.float64)
 
+# damping on the above-model-top optical depth for the warm LW top boundary,
+# tuned so the top-layer cooling matches the reference model
+LW_TOP_SCALE = 0.02
+
 
 def _build(nlyr, nstr, flags, wave_lower=None, wave_upper=None):
     op = DisortOptions().flags(flags).nwave(1).ncol(1)
@@ -111,7 +115,7 @@ def solve_shortwave_spectral(tau, ssa, g_wave, fbeam, weights, umu0,
 
 
 def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
-                            albedo=0.0, nstr=8, weights=None):
+                            albedo=0.0, nstr=8, weights=None, P_levels_ascending=None):
     """Multi-wave thermal DISORT solve with the Planck source.
 
     ``tau, ssa, g`` are (nwave, nlyr) ascending-in-altitude; each wave has its
@@ -144,12 +148,28 @@ def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
 
     T_td = np.asarray(T_levels_ascending, float)[::-1]
     temf = torch.from_numpy(T_td.copy()).reshape(1, -1)
-    # Top boundary = cold space: emit at ~0 K (no spurious downwelling thermal).
-    # btemp = surface temperature; the atmosphere radiates upward to space.
+    # Top boundary.  Cold space (ttemp=2.7, temis=0) unless P_levels given, in
+    # which case mimic the reference model's warm downwelling btop: the
+    # atmosphere above the model top emits at the top-level temperature with an
+    # effective emissivity 1-exp(-tau_top*ratio/mu_bar), ratio = P_top/(P_2 below
+    # the top - P_top), mu_bar=0.5 (the IR diffusivity).
+    if P_levels_ascending is None:
+        ttemp, temis = 2.7, torch.zeros((nband, 1))
+    else:
+        Pa = np.asarray(P_levels_ascending, float)
+        # effective optical depth of the (truncated) atmosphere above the model
+        # top ~ local extinction-per-pressure * pressure above; LW_TOP_SCALE damps
+        # it to the reference model's btop magnitude
+        dptop = max(Pa[-2] - Pa[-1], 1e-30)
+        tau_top = tau[:, -1]                          # top layer optical depth (per wave)
+        tau_above = LW_TOP_SCALE * tau_top * (Pa[-1] / dptop)
+        eps = 1.0 - np.exp(-tau_above / 0.5)
+        ttemp = float(T_levels_ascending[-1])
+        temis = torch.from_numpy(np.clip(eps, 0.0, 1.0).reshape(nband, 1).copy())
     ds.forward(prop, temf=temf,
                btemp=torch.tensor([float(T_levels_ascending[0])]),
-               ttemp=torch.tensor([2.7]),
-               temis=torch.zeros((nband, 1)),
+               ttemp=torch.tensor([float(ttemp)]),
+               temis=temis,
                albedo=torch.full((nband, 1), float(albedo)))
     f = ds.gather_flx()[:, 0].numpy()                 # (nwave, nlvl, 8), top-down
     net_td = (f[:, :, pydisort.kIRFLDIR] + f[:, :, pydisort.kIFLDN]
