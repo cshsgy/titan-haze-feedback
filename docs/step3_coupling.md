@@ -85,11 +85,16 @@ mapping our DISORT coupled run already uses.
 
 ## Validation ladder
 
-1. **Round-trip**: feed the *observational* haze through `write_presc_haze`
-   (bypass microphysics, write the observational τ/ssa/g) → Fortran → confirm the
-   same `T(z)` as the stock `preschaze` run. Proves the writer/format is correct.
-2. **One-shot**: microphysics haze on the `titan_reference` T → one Fortran run →
-   compare to the DISORT coupled run (~140 K stratopause expected).
+1. **Round-trip** — DONE. `coupling.presc_haze.write_presc_haze` writes the
+   prescribed-haze tables; `tests/test_presc_haze.py` (33 checks) validates the
+   format, and `scripts/roundtrip_haze.py` feeds the *observational* haze back
+   through the writer → Fortran → reproduces the stock `preschaze` `T(z)` to
+   **0.000 K**. Writer + format validated against the real reader.
+2. **One-shot** (next): microphysics haze on the `titan_reference` T → one
+   Fortran run → compare to the DISORT coupled run (~140 K stratopause expected).
+   Needs `microphysics_haze(micro, atm)` in `presc_haze.py` (RDG τ from `n·N̄` on
+   the SW/LW wn grids, cumulated; ω₀/g from the observational spectral shape; LW
+   pure absorber).
 3. **Iterate**: run the loop to a fixed point; report the feedback (dT vs
    d(opacity), gain, stability).
 
