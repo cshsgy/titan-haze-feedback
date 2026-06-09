@@ -168,3 +168,103 @@ class CIABands:
             if pair in prod:
                 alpha += self._k_at_T(pair, T) * prod[pair][None, :]
         return alpha * dz_cm[None, :]
+
+
+# ----------------------------------------------------------------------------
+# Fortran-matching exponential-sum CIA
+# ----------------------------------------------------------------------------
+# The reference model does not band-average HITRAN cross-sections; it evaluates a
+# 3-term exponential-sum fit to the band *transmission* (INPUT/DATA/trans_*.txt):
+#
+#     T(band) = sum_i a_i(band,Temp) * exp(-k_i(band,Temp) * u),   tau = -ln T
+#
+# with the absorber amount u = n1 * n2 * dist * 1e-7 in the model's own scaled
+# units: number density n = vmr * (P/(T*Runiv)) * avo with avo = 6.02214086 (the
+# 1e23 dropped, absorbed into the fit's k_i), and dist the layer thickness in km.
+# The fit captures sub-band absorber-amount nonlinearity a single band-averaged
+# cross-section cannot, and uses different underlying data; porting it here makes
+# our CIA identical to the reference's by construction.
+_TRANS_DIR = _ROOT / "src" / "example_bowen_fort" / "INPUT" / "DATA"
+_TRANS_FILES = {
+    "N2-N2": ("N2", "N2"),
+    "N2-CH4": ("N2", "CH4"),
+    "CH4-CH4": ("CH4", "CH4"),
+    "N2-H2": ("N2", "H2"),
+}
+_RUNIV = 8.3144598          # universal gas constant [J/mol/K] (Fortran Runiv)
+_AVO_SCALED = 6.02214086    # Avogadro / 1e23  (Fortran avo; the 1e23 is in the fit)
+
+
+def _parse_trans(path):
+    """Parse a trans_<pair>.txt exp-sum file.
+
+    Returns (wno[nband], temps[ntemp], coeff[ntemp, nband, 2*nfits]); the first
+    nfits coefficients are the weights a_i, the next nfits the exponents k_i.
+    """
+    lines = [ln for ln in Path(path).read_text().splitlines() if ln.strip()]
+    wno = np.array([float(x) for x in lines[1].split()])     # line 0 is a header
+    nb = wno.size
+    temps, blocks, i = [], [], 2
+    while i < len(lines):
+        temps.append(float(lines[i].split()[0])); i += 1
+        blocks.append(np.array([[float(x) for x in lines[i + b].split()]
+                                for b in range(nb)]))
+        i += nb
+    return wno, np.array(temps), np.array(blocks)
+
+
+class CIAExpSum:
+    """Exp-sum-transmission CIA, matching the reference Fortran's ``get_tauCIA``.
+
+    Same ``optical_depth(column, comp) -> tau[nband, nlyr]`` interface and band
+    grid as :class:`CIABands`, so it is a drop-in replacement.
+    """
+
+    def __init__(self, trans_dir=_TRANS_DIR, pairs=_TRANS_FILES):
+        self.tables, wno = {}, None
+        for pair, species in pairs.items():
+            w, temps, coeff = _parse_trans(Path(trans_dir) / f"trans_{pair}.txt")
+            self.tables[pair] = (species, temps, coeff)
+            wno = w
+        self.wno = wno
+        self.band_lo = wno - 25.0                 # 50 cm^-1 bands, centres 25..1975
+        self.band_hi = wno + 25.0
+        self.nband = wno.size
+        self.nfits = next(iter(self.tables.values()))[2].shape[2] // 2
+
+    def _pair_tau(self, temps, coeff, T, u):
+        """Per-pair tau[nband, nlyr] by linear-in-T interpolation of the band
+        transmission (exactly as the Fortran: interpolate T, not the coeffs)."""
+        nf = self.nfits
+        a, k = coeff[:, :, :nf], coeff[:, :, nf:]      # (ntemp, nband, nfits)
+
+        def trans_at(it, uu):                          # transmission at temp index it
+            return (a[it] * np.exp(-k[it] * uu)).sum(axis=1)   # (nband,)
+
+        out = np.zeros((self.nband, T.size))
+        for l in range(T.size):
+            Tl, ul = float(T[l]), float(u[l])
+            if Tl <= temps[0]:
+                tr = trans_at(0, ul)
+            elif Tl >= temps[-1]:
+                tr = trans_at(-1, ul)
+            else:
+                it = int(np.searchsorted(temps, Tl))   # temps[it-1] < Tl <= temps[it]
+                tlo, thi = trans_at(it - 1, ul), trans_at(it, ul)
+                tr = thi - (temps[it] - Tl) / (temps[it] - temps[it - 1]) * (thi - tlo)
+            tr = np.clip(tr, 1e-307, 1.0)
+            out[:, l] = -np.log(tr)
+        return out
+
+    def optical_depth(self, column, comp: Composition | None = None):
+        comp = comp or Composition()
+        rho_moles = column.P_mid / (column.T_mid * _RUNIV)     # mol/m^3
+        nd = {s: x * rho_moles * _AVO_SCALED for s, x in
+              (("N2", comp.x_N2), ("CH4", comp.x_CH4), ("H2", comp.x_H2))}
+        dist_km = column.dz / 1000.0
+        tau = np.zeros((self.nband, column.nlyr))
+        for pair, (species, temps, coeff) in self.tables.items():
+            s1, s2 = species
+            u = nd[s1] * nd[s2] * dist_km * 1e-7               # col_abund (scaled units)
+            tau += self._pair_tau(temps, coeff, column.T_mid, u)
+        return tau

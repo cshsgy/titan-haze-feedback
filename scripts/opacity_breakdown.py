@@ -37,7 +37,7 @@ from rt.column import Column
 from rt.optics import (OpticsParams, haze_band_tau, rayleigh_band_tau,
                        spectral_haze_sw)
 from rt.correlated_k import CorrelatedKSW, CorrelatedKLW
-from rt.cia import CIABands, Composition
+from rt.cia import CIAExpSum, Composition
 
 FORT = ROOT / "src" / "example_bowen_fort"
 
@@ -139,7 +139,7 @@ def main():
     micro = solve_bvp_profile(Atmosphere.titan_reference(), DEFAULT, n_nodes=200)
     op = OpticsParams(prescribed_haze=True)
     comp = Composition()
-    ck, cklw, cia = CorrelatedKSW(), CorrelatedKLW(), CIABands()
+    ck, cklw, cia = CorrelatedKSW(), CorrelatedKLW(), CIAExpSum()
 
     Pmid = col.P_mid                                          # ascending? -> surface..top
     # ---- our per-source per-band per-layer tau, then cumulative-from-top ----
@@ -163,7 +163,10 @@ def main():
     fPi, fwi, fhi = fortran_haze_i()
     fPc, fwc, fci = fortran_cia_i()
     rwn, rco = fortran_rayleigh()
-    # Fortran gas is per-layer (top->surface order); cumulate from the top.
+    # The Fortran CIA and gas dumps are PER-LAYER (top->surface); cumulate them
+    # from the top so they compare like-for-like with our cumulative tau.  (Only
+    # the haze dumps are already cumulative.)
+    fci = np.cumsum(fci, axis=1)
     fPgv, fgv = fortran_gas("v"); fgv_cum = np.cumsum(fgv, axis=1)
     fPgi, fgi = fortran_gas("i"); fgi_cum = np.cumsum(fgi, axis=1)
 
@@ -180,7 +183,7 @@ def main():
                 ("300 cm-1", int(np.argmin(np.abs(lw_wno - 300.0)))),
                 ("600 cm-1", int(np.argmin(np.abs(lw_wno - 600.0))))]
 
-    Pq = np.array([1., 3., 10., 30., 100., 300., 1000.])     # incl. mid-altitude
+    Pq = np.array([1., 3., 10., 30., 100., 300., 1000., 1e4, 3e4, 1e5])  # mid + deep (CIA)
     o = np.argsort(Pmid)
 
     def our_cum(cum, bidx):
@@ -243,12 +246,14 @@ def main():
     print("(averaged over the sampled bands where the source is non-negligible)")
     midmask = (Pq >= 10) & (Pq <= 100)
 
-    def ratio(our_src_cum, fP, ftau, bands, fbands):
+    deepmask = Pq >= 1e4                      # CIA lives in the deep atmosphere
+
+    def ratio(our_src_cum, fP, ftau, bands, fbands, mask=midmask):
         rs = []
         for _, bi in bands:
             fbi = bi if fbands is None else int(np.argmin(np.abs(fbands - lw_wno[bi])))
-            ours = our_cum(our_src_cum, bi)[midmask]
-            fort = finterp(fP, ftau, fbi, Pq)[midmask]
+            ours = our_cum(our_src_cum, bi)[mask]
+            fort = finterp(fP, ftau, fbi, Pq)[mask]
             m = fort > 1e-4
             if m.any():
                 rs.extend((ours[m] / fort[m]).tolist())
@@ -259,7 +264,7 @@ def main():
         ("SW gas CH4 ", (sw_cum["gas CH4"], fPgv, fgv_cum, sw_bands, None)),
         ("LW haze    ", (lw_cum["haze"], fPi, fhi, lw_bands, fwi)),
         ("LW gas line", (lw_cum["gas line"], fPgi, fgi_cum, lw_bands, fwi)),
-        ("LW CIA     ", (lw_cum["CIA"], fPc, fci, lw_bands, fwc)),
+        ("LW CIA*    ", (lw_cum["CIA"], fPc, fci, lw_bands, fwc, deepmask)),
     ]:
         mean, lo, hi = ratio(*args)
         if mean != mean:
@@ -267,8 +272,8 @@ def main():
             continue
         tag = "OK" if 0.8 <= mean <= 1.25 else "<-- check"
         print(f"  {label}: ours/F = {mean:5.2f}  (range {lo:4.2f}-{hi:4.2f})  {tag}")
-    print("\n  -> if all sources are ~1.0 here, the mid-altitude HEATING gap is NOT")
-    print("     opacity; it is the RT solver (8-stream DISORT vs 2-stream/hemispheric).")
+    print("  (* CIA is evaluated at depth, 10-100 kPa, where the continuum lives;")
+    print("     it now uses the reference's exp-sum transmission fits, not HITRAN.)")
 
     # ---------- figure: cumulative tau by source vs pressure ----------
     fig, axes = plt.subplots(2, 3, figsize=(15, 9), sharey=True)

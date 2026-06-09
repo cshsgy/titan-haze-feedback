@@ -13,7 +13,7 @@ import numpy as np
 
 from .column import Column
 from .optics import OpticsParams, shortwave_optics, longwave_optics_spectral
-from .cia import CIABands, Composition
+from .cia import CIABands, CIAExpSum, Composition
 from . import disort_driver as dd
 
 # Solar constant at Titan (~9.5 AU, reference-model value): 1361 / 9.5^2 W/m^2
@@ -62,7 +62,11 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
             "inconsistent energy balance; radiative_equilibrium uses both.")
     op = op or OpticsParams()
     solar = solar or SolarForcing()
-    cia = cia or CIABands()
+    # match-Fortran longwave continuum: the reference's exponential-sum
+    # transmission CIA (trans_*.txt) rather than our band-averaged HITRAN table,
+    # which overestimates the far-IR continuum by ~1.75x
+    if cia is None:
+        cia = CIAExpSum() if op.match_fortran else CIABands()
 
     # match-Fortran longwave boundaries: warm downwelling top + reflecting
     # surface (eps = 0.95); otherwise cold-space top + black surface
@@ -176,7 +180,7 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
-    cia = CIABands()                       # build the CIA table once
+    cia = CIAExpSum() if op.match_fortran else CIABands()   # build the CIA table once
     ck = ck_lw = None
     if use_ck:
         from .correlated_k import CorrelatedKSW, CorrelatedKLW

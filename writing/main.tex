@@ -290,57 +290,31 @@ C$_2$H$_6$/C$_2$H$_4$/HCN), Rayleigh, and CIA---separately from the top down
 per-band Gauss-weighted gas-opacity output, so even the correlated-$k$ gas can
 be compared directly rather than inferred.
 
-Through the mid-atmosphere ($10$--$100\,\mathrm{Pa}$) \emph{every} source agrees
-to within a few percent: the (dominant) shortwave haze optical depth matches to
-$1\%$, the longwave haze to $\sim\!10\%$, and Rayleigh and CIA to within their
-(small) magnitudes. The only outlier is the CH$_4$ shortwave gas, where ours
-runs $\sim\!1.65\times$ the reference, but in absolute terms that band is
-optically thin ($\tau\lesssim0.01$ in the column) and contributes negligibly to
-the heating. Since the opacities match where the heating rates differ, the
-mid-atmosphere difference is \emph{not} an opacity error, leaving the
-radiative-transfer solver as the remaining candidate. The breakdown also exposes
-a genuine opacity difference confined to the very top ($P<10\,\mathrm{Pa}$),
-where our haze column is thinner than the reference's---an upper-atmosphere
-effect distinct from the mid-altitude question.
+Through the mid-atmosphere ($10$--$100\,\mathrm{Pa}$) the dominant sources agree
+to within a few percent: the (controlling) shortwave haze optical depth matches
+to $1\%$ and the longwave haze to $\sim\!10\%$. The CH$_4$ shortwave gas is the
+one mid-atmosphere outlier, ours $\sim\!1.65\times$ the reference, but that band
+is optically thin ($\tau\lesssim0.01$ in the column) and contributes negligibly
+to the heating. The collision-induced absorption (CIA), by contrast, lives in the
+deep atmosphere ($P\gtrsim10\,\mathrm{kPa}$), and there the breakdown exposed a
+real difference: our continuum ran well above the reference's.
 
-We test the solver hypothesis directly by passing the \emph{same} optics through
-DISORT at $N_{\mathrm{str}}=2,4,8,16$ and comparing each to the reference at the
-same state (Fig.~\ref{fig:streams}). The result is more discriminating than a
-single ``solver'' attribution. In the \emph{shortwave} the stream count barely
-matters---all four solutions collapse onto one another and onto the reference
-through the mid-atmosphere, and our converged eight-stream solution is in fact
-the \emph{closest} to the reference (mean mid-altitude difference
-$0.5\,\mathrm{K\,day^{-1}}$, versus $1.6$ at two streams). The reference's
-delta-Eddington two-stream, designed to reproduce the multi-stream result for a
-forward-scattering medium, evidently does so here; the residual few-percent
-shortwave difference is therefore not the angular quadrature. In the
-\emph{longwave}, by contrast, reducing to two streams moves our heating
-\emph{toward} the reference (mean mid-altitude difference $2.9\to2.1\,\mathrm{
-K\,day^{-1}}$), consistent with its hemispheric-mean ($\bar\mu=\tfrac12$) being a
-two-stream method---but only about a third of the $\sim\!12\%$ longwave gap is
-recovered this way, so the angular treatment is a contributor, not the whole
-story. The remainder is consistent with the differing longwave continuum (our
-band-averaged HITRAN CIA vs.\ the reference's exponential-sum transmission fits)
-and the $\sim\!10\%$ longwave-haze offset seen in the breakdown. Net: through the
-mid-atmosphere the two engines agree to within $\sim\!5\%$ (shortwave) and
-$\sim\!12\%$ (longwave); the shortwave agreement is solver-independent, while the
-longwave residual is part angular quadrature and part continuum, not a single
-cause.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figs/solver_streams.png}
-  \caption{Solver test: heating rates from our DISORT optics at
-    $N_{\mathrm{str}}=2,4,8,16$ (coloured) against the reference two-stream model
-    (dashed), at the same state. Shaded: mid-altitude $10$--$100\,\mathrm{Pa}$.
-    Shortwave (left) is insensitive to the stream count---the curves collapse and
-    the eight-stream solution best matches the reference---so the shortwave
-    difference is not the angular quadrature. Longwave (right) moves toward the
-    reference as the stream count drops to two, matching its hemispheric-mean
-    treatment, but recovers only part of the gap. (The longwave top
-    $P\lesssim2\,\mathrm{Pa}$ is the reference's unconverged, oscillating region.)}
-  \label{fig:streams}
-\end{figure}
+We traced this to the CIA formulation. Our model band-averaged the HITRAN
+cross-sections and formed $\tau=\sum_\mathrm{pairs}k\,n_A n_B\,\Delta z$, whereas
+the reference evaluates a three-term exponential-sum fit to the band
+\emph{transmission}, $\mathcal{T}=\sum_i a_i\exp(-k_i u)$ with $\tau=-\ln\mathcal
+{T}$ and absorber amount $u=n_1 n_2\,\Delta z$---a form that captures the sub-band
+absorber-amount nonlinearity a single band-averaged cross-section cannot. On the
+shared Titan far-IR continuum the band-averaged cross-section overestimated the
+optical depth by $\sim\!1.75\times$. Adopting the reference's exponential-sum
+fits (reading the same transmission tables) brings the two continua into
+agreement to a few percent through the bulk of the deep atmosphere
+(Fig.~\ref{fig:opacity}, bottom row; the per-band cumulative-$\tau$ ratio is
+$0.98$ at $10$--$100\,\mathrm{kPa}$), closing the dominant longwave opacity
+difference; the residual is confined to the lowest layer. With this and the
+haze/gas agreement above, the two engines' opacities now match through the
+column, leaving the upper-atmosphere haze-column difference ($P<10\,\mathrm{Pa}$,
+where ours is thinner) as the remaining opacity offset.
 
 \begin{figure}[t]
   \centering
@@ -350,9 +324,10 @@ cause.
     same state. Top row: shortwave (haze, CH$_4$ gas, Rayleigh) in three
     representative bands; bottom row: longwave (haze, gas lines, CIA). The shaded
     band marks the mid-altitude $10$--$100\,\mathrm{Pa}$ region. The haze
-    dominates and matches closely; all sources agree to within a few percent
-    through the mid-atmosphere, so the residual heating-rate difference there is
-    the radiative-transfer solver, not the opacity.}
+    dominates the mid-atmosphere and matches closely; the CIA continuum (bottom
+    row, deep atmosphere) matches once our model adopts the reference's
+    exponential-sum transmission fits in place of band-averaged HITRAN
+    cross-sections.}
   \label{fig:opacity}
 \end{figure}
 
