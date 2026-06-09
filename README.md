@@ -21,9 +21,11 @@ state.
 
 ## Project plan
 
-### Step 1 — Radiative-transfer energy balance (DISORT)
-Build a 1D plane-parallel column for Titan and solve the shortwave + longwave
-radiative transfer with **DISORT** (discrete ordinates, multi-stream).
+### Step 1 — Radiative-transfer energy balance
+Solve the shortwave + longwave radiative transfer for a 1D plane-parallel Titan
+column. **The Step 1 engine is the reference TAM-lineage Fortran model**
+(`src/example_bowen_fort/`, correlated-$k$ two-stream; see below); our
+multi-stream **DISORT** implementation (`src/rt/`) is a validated cross-check.
 - Shortwave: solar absorption by CH₄ + haze; Lombardo splits at 5 µm
   (2000–40000 cm⁻¹). Haze scattering with single-scattering albedo ω₀ and
   asymmetry g.
@@ -80,9 +82,10 @@ src/microphysics/       Step 2 scaling-law solver
   transport.py          fractal geometry, settling omega, coagulation kernel beta
   scaling_law.py        K->0 master-ODE integrator -> n(z), Nbar(z), rho_h(z)
   bvp.py                full eddy-diffusion BVP (master ODE as initial guess)
-src/rt/                 Step 1 DISORT energy balance (needs pydisort/.rtenv)
+src/example_bowen_fort/ Step 1 RT engine: reference TAM-lineage Fortran model
+src/rt/                 DISORT cross-check of Step 1 (needs pydisort/.rtenv)
   column.py             layered column from an Atmosphere; heating-rate helper
-  cia.py                HITRAN collision-induced absorption (N2-N2, N2-CH4, …)
+  cia.py                CIA: HITRAN band-avg (CIABands) + exp-sum fits (CIAExpSum)
   optics.py             per-layer (tau, ssa, g): haze (Step 2) + CIA + gray SW gas
   disort_driver.py      pydisort wrapper: shortwave beam + multiband longwave Planck
   energy_balance.py     SW heating, LW cooling, radiative-equilibrium relaxation
@@ -119,21 +122,46 @@ python3 scripts/cross_validate.py      # BVP + validation -> writing/figs/
 .rtenv/bin/python scripts/run_energy_balance.py  # heating/cooling + T(z)
 ```
 
-### Reference Fortran model (`src/example_bowen_fort/`)
+### Step 1 RT engine — the reference Fortran model (`src/example_bowen_fort/`)
 
-A TAM-derived (Lora/Lombardo lineage) Fortran radiation model is included for
-cross-comparison. It builds with stock gfortran and runs on prescribed data:
+**Decision (Jun 2026):** the **TAM-derived (Lora/Lombardo lineage) Fortran
+radiation model is the Step 1 RT engine.** It is a mature, complete
+correlated-$k$ model (CH₄ shortwave; CH₄/C₂H₂/C₂H₆/C₂H₄/HCN gas lines;
+N₂–N₂/N₂–CH₄/CH₄–CH₄/N₂–H₂ CIA via exp-sum transmission fits; prescribed haze;
+delta-Eddington two-stream SW + hemispheric-mean LW) with surface energy balance
+and convective adjustment. It builds with stock gfortran and runs on prescribed
+data:
 
 ```bash
 bash scripts/build_fortran.sh && bash scripts/run_fortran.sh
 .rtenv/bin/python scripts/compare_fortran.py   # overlay -> writing/figs/fortran_comparison.png
 ```
 
-Our DISORT model and the full TAM model agree closely on T(z) (stratopause
-~185–190 K, tropopause ~70–75 K, surface ~90 K). Two of its modules
-(`haze_mod`, `read_clim_mod`) were missing from the upload and are **reconstructed**
-in `reconstructed_stubs.F90` (notably an approximate `saturate`); see that dir's
-README for provenance.
+Step 3 will drive **this** RT with the Step 2 microphysics haze. Two of its
+modules (`haze_mod`, `read_clim_mod`) were missing from the upload and are
+**reconstructed** in `reconstructed_stubs.F90` (notably an approximate
+`saturate` and the prescribed-haze interpolation); see that dir's README for
+provenance.
+
+**Caveats to track:** the run does not reach steady state above ~4 Pa (the thin
+top layers oscillate by tens of K; the comparison uses the time-mean of the last
+20 snapshots), and it diverges to NaN in its final snapshots (take the last
+finite one). See `docs/rt_discrepancies.md`.
+
+### DISORT cross-check (`src/rt/`)
+
+Our `pydisort`/DISORT implementation (multi-stream, Python) is retained as an
+**independent validation** of the Step 1 engine, not the production RT. It was
+matched to the reference source-by-source: with the same insolation
+(`sma=9.5` AU, diurnally-averaged `cosz=1/π`), Rayleigh, surface albedos, the
+reference's **exp-sum CIA** (`CIAExpSum`, reading the same `trans_*.txt` tables),
+and the **same 100-layer log-pressure grid** (top 1 Pa), **every opacity source
+agrees to within a few percent** (`scripts/opacity_breakdown.py`); on the
+prescribed haze both reach a ~200 K stratopause. The residual same-state
+heating-rate differences are the solver (8-stream DISORT vs the reference's
+two-stream) and boundary details, not the optics. Run
+`scripts/rt_diagnostics.py` and `scripts/opacity_breakdown.py` for the
+breakdown.
 
 **Cross-validation (vs. published Titan constraints).** The eddy-diffusion BVP
 reproduces the haze extinction scale height of Tomasko et al. (2008),
@@ -159,19 +187,20 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 ## Status
 
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
-- [x] Step 1 — DISORT energy balance (`src/rt/`) via pydisort, **physics complete
-      and validated**: **correlated-k CH₄ shortwave** + **spectral haze ω₀(λ)/g(λ)**
-      + **mean-field (RDG) aggregate haze cross-section** (`aggregate_optics.py`,
-      Khare tholin index; absorption ∝ N monomers, not r_a²) + **longwave = HITRAN
-      CIA + correlated-k gas lines (CH₄/C₂H₂/C₂H₆/C₂H₄/HCN)** + convective adjustment.
-      **Validation:** on the *prescribed* (observational) haze the engine reaches a
-      ~200 K stratopause, matching the reference Fortran (`example_bowen_fort`, ~195 K).
-      The RDG cross-section corrected the haze optical-depth magnitude (visible column
-      τ ~8, matching Doose, vs ~70 with the old gray mobility-radius cross-section) and
-      warmed the coupled stratopause ~115→140 K. The residual ~50 K gap is the haze
-      **vertical distribution** (set by the Step 2 production/settling, ρ_h ∝ 1/ω),
-      not the radiation. Haze model selectable via `OpticsParams.haze_mode`
-      ('rdg' default / 'gray' / 'prescribed').
+- [x] Step 1 — **engine chosen: the reference TAM-lineage Fortran model**
+      (`src/example_bowen_fort/`), a mature correlated-$k$ two-stream RT with
+      surface energy balance + convective adjustment. Step 3 drives it with the
+      Step 2 haze.
+- [x] Step 1 cross-check — **DISORT (`src/rt/`) validated against the engine and
+      now matches it source-by-source**: correlated-k CH₄ shortwave, spectral haze
+      ω₀(λ)/g(λ), mean-field (RDG) aggregate cross-section, **exp-sum CIA matching
+      the reference's `trans_*.txt`** + gas lines, same insolation, same 100-layer
+      log-pressure grid. **Every opacity source agrees to within a few percent**;
+      on the prescribed haze both reach a ~200 K stratopause. Residual same-state
+      heating differences are the solver (8-stream vs two-stream), not the optics.
+      (DISORT's coupled microphysics-haze run gives a ~140 K stratopause; the
+      ~50 K gap to observed is the haze **vertical distribution** from Step 2, not
+      the radiation.)
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration

@@ -36,9 +36,10 @@ sunlight and warms the stratosphere, emits in the thermal infrared, and its
 vertical and size structure is set by coagulation and sedimentation of fractal
 aggregates whose rates depend on the local temperature. This makes the haze a
 genuine feedback element rather than a passive tracer. We outline a four-stage
-program to isolate this feedback in a one-dimensional column: (i) a multi-stream
-discrete-ordinates (DISORT/\texttt{pydisort}) radiative energy balance for the
-temperature profile; (ii) an analytic \emph{scaling law} for the aerosol
+program to isolate this feedback in a one-dimensional column: (i) a correlated-$k$
+radiative energy balance for the temperature profile (a mature TAM-lineage
+engine, cross-validated source-by-source against an independent multi-stream
+DISORT/\texttt{pydisort} implementation); (ii) an analytic \emph{scaling law} for the aerosol
 microphysics that maps temperature, monomer radius, and fractal dimension onto
 the haze number- and size-profile; (iii) iteration of (i) and (ii) to a
 self-consistent fixed point to diagnose the feedback; and (iv) coupling of
@@ -91,11 +92,15 @@ The program proceeds in four stages.
 
 \begin{description}
   \item[Step 1 --- Radiative energy balance.] A 1-D plane-parallel Titan column
-    solved with a multi-stream discrete-ordinates method
-    (\texttt{pydisort}/DISORT; \citealp{Stamnes1988}). Shortwave absorption by
-    $\mathrm{CH_4}$ and haze; longwave cooling by gas lines, collision-induced
-    absorption, and haze emission. Iterated to radiative(--convective)
-    equilibrium for $T(z)$ (Sec.~\ref{sec:rt}).
+    iterated to radiative(--convective) equilibrium for $T(z)$: shortwave
+    absorption by $\mathrm{CH_4}$ and haze; longwave cooling by gas lines,
+    collision-induced absorption, and haze emission (Sec.~\ref{sec:rt}). The
+    production engine is a mature TAM-lineage correlated-$k$ model
+    (\texttt{example\_bowen\_fort}); we additionally built an independent
+    multi-stream discrete-ordinates implementation
+    (\texttt{pydisort}/DISORT; \citealp{Stamnes1988}) and matched the two
+    source-by-source, so the engine is cross-validated rather than taken on
+    trust (Sec.~\ref{sec:rt-fortran}).
   \item[Step 2 --- Microphysical scaling law.] A closed relation for the
     steady aggregate population, coagulation $+$ sedimentation
     $\to$ density/size profile, in the form $C(z,N)\,\dd z\,\dd N=f(z,N,T,d,\Df)$
@@ -110,11 +115,12 @@ The program proceeds in four stages.
     (Sec.~\ref{sec:photochem}).
 \end{description}
 
-\noindent We note that none of the reference studies
-\citep{Tomasko2008heat,Lombardo2023,deTrenquelleon2025} use DISORT---they employ
-doubling--adding, line-by-line, or two-stream solvers---so the multi-stream
-solver here is an upgrade, validated against the net-flux and heating/cooling
-tables of \citet{Tomasko2008heat}.
+\noindent The Step 1 engine is the reference correlated-$k$ model; our DISORT
+implementation serves as an independent multi-stream cross-check. The two are
+matched to within a few percent in every opacity source on a shared
+$100$-layer grid (Sec.~\ref{sec:rt-fortran}), so the multi-stream solver both
+validates the engine and provides a higher-angular-resolution option for the
+scattering-dominated shortwave.
 
 \section{Radiative energy balance (Step 1)}
 \label{sec:rt}
