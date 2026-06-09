@@ -77,7 +77,8 @@ def test_correlated_k_ch4_shortwave():
     _, micro, col = _setup()
     # CH4-only (no haze) must absorb a positive, sane amount of shortwave
     class _Z:
-        z, n, r_a = micro.z, micro.n * 0.0, micro.r_a
+        z, n, Nbar, r_a, params = (micro.z, micro.n * 0.0, micro.Nbar,
+                                   micro.r_a, micro.params)
     tau, ssa, gh, fb, w = shortwave_optics_ck(col, _Z(), ck, OpticsParams(), Composition())
     sw = dd.solve_shortwave_spectral(tau, ssa, gh, fb, w, umu0=0.35, albedo=0.1)
     absorbed = sw[-1] - sw[0]
@@ -117,6 +118,28 @@ def test_prescribed_haze_path():
         op = OpticsParams(prescribed_haze=presc)
         tau, ssa, g, fb, w = shortwave_optics_ck(col, micro, ck, op)
         assert np.all(np.isfinite(tau)) and np.all((ssa >= 0) & (ssa <= 1))
+
+
+def test_rdg_aggregate_optics():
+    """RDG haze cross-section gives a physical (observation-like) column optical
+    depth, unlike the ~8x-too-high gray mobility-radius cross-section."""
+    from rt.optics import haze_band_tau, OpticsParams, spectral_haze_sw
+    from rt.correlated_k import CorrelatedKSW
+    from rt.aggregate_optics import band_lambda_um, monomer_cabs
+    _, micro, col = _setup()
+    ck = CorrelatedKSW(sma_au=9.58)
+    om, _ = spectral_haze_sw(tuple(np.round(ck.bands, 3)))
+    # monomer absorption is strongly wavelength dependent (UV >> near-IR)
+    lam = band_lambda_um(ck.bands)
+    cabs = monomer_cabs(lam, micro.params.d_mono)
+    assert cabs[np.argmin(np.abs(lam - 0.3))] > 5 * cabs[np.argmin(np.abs(lam - 1.0))]
+    # RDG visible column optical depth is order-Doose (a few), not tens
+    tau = haze_band_tau(col, micro, OpticsParams(), ck.bands, "v", om)
+    coltau_vis = tau[np.argmin(np.abs(lam - 0.5))].sum()
+    assert 2.0 < coltau_vis < 20.0, coltau_vis
+    # gray mobility-radius cross-section is far larger (the bug being fixed)
+    gray = haze_band_tau(col, micro, OpticsParams(haze_mode="gray"), ck.bands, "v", om)
+    assert gray[0].sum() > 3 * coltau_vis
 
 
 def test_spectral_haze_sw():

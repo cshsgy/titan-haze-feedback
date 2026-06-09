@@ -160,16 +160,17 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
 - [x] Literature extracted → `docs/physics_parameters.md`, `docs/scaling_law.md`
 - [x] Step 1 — DISORT energy balance (`src/rt/`) via pydisort, **physics complete
       and validated**: **correlated-k CH₄ shortwave** + **spectral haze ω₀(λ)/g(λ)**
-      + **longwave = HITRAN CIA (N₂–N₂/N₂–CH₄/CH₄–CH₄/N₂–H₂) + correlated-k gas
-      lines (CH₄/C₂H₂/C₂H₆/C₂H₄/HCN)** + convective adjustment. Genuine
-      radiative–convective steady state, energy closed to ~0.1 W/m². **Validation:**
-      run on the *prescribed* (observational) haze the engine reaches a ~200 K
-      stratopause, matching the reference Fortran model (`example_bowen_fort`, ~195 K)
-      — so the radiation is correct. Driven by the **Step 2 microphysics haze** it is
-      ~80 K colder in the stratosphere; that gap is isolated to the Step 2
-      haze→optics cross-section (mobility radius overestimates large-aggregate
-      extinction → column optical depth several× observed), not the radiation. Next
-      refinement is in Step 2 (mean-field aggregate optics).
+      + **mean-field (RDG) aggregate haze cross-section** (`aggregate_optics.py`,
+      Khare tholin index; absorption ∝ N monomers, not r_a²) + **longwave = HITRAN
+      CIA + correlated-k gas lines (CH₄/C₂H₂/C₂H₆/C₂H₄/HCN)** + convective adjustment.
+      **Validation:** on the *prescribed* (observational) haze the engine reaches a
+      ~200 K stratopause, matching the reference Fortran (`example_bowen_fort`, ~195 K).
+      The RDG cross-section corrected the haze optical-depth magnitude (visible column
+      τ ~8, matching Doose, vs ~70 with the old gray mobility-radius cross-section) and
+      warmed the coupled stratopause ~115→145 K. The residual ~50 K gap is the haze
+      **vertical distribution** (set by the Step 2 production/settling, ρ_h ∝ 1/ω),
+      not the radiation. Haze model selectable via `OpticsParams.haze_mode`
+      ('rdg' default / 'gray' / 'prescribed').
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
 - [ ] Step 3 — coupled iteration

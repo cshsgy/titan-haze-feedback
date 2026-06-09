@@ -150,12 +150,19 @@ Table~\ref{tab:params}.
 The solver is built on \texttt{pydisort} (a modern \texttt{torch}-based DISORT
 binding) with eight streams: a collimated solar beam in the shortwave and a
 band-resolved Planck thermal source in the longwave. Per layer the optical
-properties combine the haze---its extinction from the Step~2 microphysics
-(cross-section $Q_{\rm ext}\pi r_a^2$), with \emph{spectral} single-scattering
-albedo $\omega_0(\lambda)$ and asymmetry $g(\lambda)$ taken from the Huygens/DISR
-prescribed haze (Doose 2016): $\omega_0\!\to\!0$ in the UV (pure absorber),
-rising to $\sim\!0.9$ in the near-IR, and a near-pure absorber in the thermal
-IR---and the gas.
+properties combine the haze and the gas. The haze extinction follows from the
+Step~2 microphysics through \emph{mean-field (Rayleigh--Debye--Gans) aggregate
+optics}: each monomer absorbs in the Rayleigh regime, so the aggregate absorption
+is additive over monomers, $C_{\rm abs}=N\,C_{\rm abs}^{\rm mono}(\lambda)$ with
+$C_{\rm abs}^{\rm mono}=(8\pi^2 d^3/\lambda)\,\mathrm{Im}\{(m^2-1)/(m^2+2)\}$ and
+$m(\lambda)$ the tholin index \citep[Khare et al.\ 1984;][]{deTrenquelleon2025}.
+This scales the extinction with monomer number (i.e.\ mass), not with $r_a^2$, and
+so corrects the mobility-radius cross-section that overestimated the optical depth
+roughly eightfold; with the monomer absorption anchored to the observed haze
+opacity, the visible column optical depth is $\approx\!8$, matching Huygens/DISR.
+Spectral single-scattering albedo $\omega_0(\lambda)$ and asymmetry $g(\lambda)$
+come from the prescribed haze (Doose 2016): $\omega_0\!\to\!0$ in the UV (pure
+absorber), $\sim\!0.9$ in the near-IR, near-pure absorber in the thermal IR.
 
 The longwave combines two sources on a common $40$-band IR grid
 ($0$--$2000\,\mathrm{cm^{-1}}$, $50\,\mathrm{cm^{-1}}$ bands). First, \emph{real
@@ -193,28 +200,29 @@ Cold space is imposed as the top boundary (a thermal emission temperature of
 $2.7\,\mathrm{K}$, not the atmosphere's top temperature); without this the
 column spuriously absorbs downwelling longwave and overheats.
 
-The solver reaches a genuine steady state with $\sim\!\SI{4.0}{W.m^{-2}}$ of
-shortwave absorbed (close to the $\sim\!\SI{4.5}{W.m^{-2}}$ of
-\citealp{Tomasko2008heat}), energy closed to $\sim\!0.1\,\mathrm{W\,m^{-2}}$.
-Driven by the Step~2 microphysics haze it has the right vertical structure---a
-stratopause ($\sim\!300\,\mathrm{Pa}$), a cold tropopause near $74\,\mathrm{K}$,
-a $\sim\!92\,\mathrm{K}$ surface---but a stratosphere $\sim\!80\,\mathrm{K}$ too
-cold (Fig.~\ref{fig:ebal}, red).
+The solver reaches a genuine steady state with energy closed to
+$\sim\!0.1$--$1\,\mathrm{W\,m^{-2}}$. Driven by the Step~2 microphysics haze
+(through the RDG cross-section) it has the right vertical structure---a stratopause,
+a cold tropopause near $74\,\mathrm{K}$, a $\sim\!92\,\mathrm{K}$ surface---with a
+stratopause near $145\,\mathrm{K}$, up from $\sim\!115\,\mathrm{K}$ with the old
+gray cross-section but still below the observed $\sim\!190\,\mathrm{K}$
+(Fig.~\ref{fig:ebal}, red).
 
-To localize this deficit we ran the \emph{same} radiative engine on the
+To localize the residual deficit we ran the \emph{same} radiative engine on the
 observationally-prescribed haze (the optical depths the reference model uses)
 instead of the microphysics haze. It then reaches a $\sim\!200\,\mathrm{K}$
 stratopause, matching the reference (Fig.~\ref{fig:fortran}, green vs.\ black) ---
-so the radiation physics (correlated-$k$ CH$_4$ shortwave, spectral haze, CIA,
-correlated-$k$ gas-line longwave, convective adjustment, energy closure) is
-\emph{correct}, and the entire $\sim\!80\,\mathrm{K}$ cold bias is the
-microphysics haze: our Step~2 haze places too much optical depth too low and too
-much in total (the mobility-radius optical cross-section overestimates large-
-aggregate extinction, giving a column optical depth several times observed). This
-is a Step~2 microphysics$\to$optics calibration issue (mean-field aggregate
-optics), not a radiation one. The validated radiation engine, energy closure, and
-haze$\rightarrow$optics$\rightarrow$DISORT coupling are in place, which is what
-Step~3 requires.
+so the radiation physics (correlated-$k$ CH$_4$ shortwave, mean-field haze optics,
+CIA + correlated-$k$ gas-line longwave, convective adjustment, energy closure) is
+\emph{correct}. The mean-field cross-section fixed the optical-depth
+\emph{magnitude} (visible column $\tau\!\approx\!8$, matching observation, versus
+$\sim\!70$ before) and warmed the stratopause by $\sim\!30\,\mathrm{K}$; the
+remaining gap is the haze \emph{vertical distribution}, which is set by the Step~2
+microphysics ($\rho_h\!\propto\!1/\omega$) and differs from the observed profile.
+Closing it is a microphysics task (the haze production/settling that sets where
+the optical depth sits), not a radiation one. The validated radiation engine,
+energy closure, and haze$\rightarrow$optics$\rightarrow$DISORT coupling are in
+place, which is what Step~3 requires.
 
 \begin{figure}[t]
   \centering
@@ -240,18 +248,18 @@ diurnally-averaged insolation (the diurnal cycle disabled for faster
 convergence). Both models are at steady state.
 
 Figure~\ref{fig:fortran} overlays three profiles on a shared pressure
-coordinate. Driven by the Step~2 microphysics haze (red), our model has the right
-structure but a $\sim\!115\,\mathrm{K}$ stratopause versus the reference's
-$\sim\!195\,\mathrm{K}$. Driven instead by the \emph{prescribed} haze (green)---
-the observational optical depths the reference uses, in the same radiative
-engine---our model reaches $\sim\!200\,\mathrm{K}$ and tracks the reference
-(black) closely through the stratosphere and mesosphere. This isolates the
-discrepancy cleanly: the radiation is right (the engine reproduces the reference
-given the same haze), and the cold bias of the coupled run is entirely the
-microphysics haze---its optical depth is too large and deposited too low (the
-mobility-radius optical cross-section overestimates large-aggregate extinction).
-The remaining upgrade is therefore in Step~2 (mean-field aggregate optics for the
-haze cross-section), not in the radiation.
+coordinate. Driven by the Step~2 microphysics haze with mean-field optics (red),
+our model has the right structure and a $\sim\!145\,\mathrm{K}$ stratopause;
+driven instead by the \emph{prescribed} haze (green)---the observational optical
+depths the reference uses, in the same radiative engine---it reaches
+$\sim\!200\,\mathrm{K}$ and tracks the reference (black) closely. This isolates
+the discrepancy cleanly: the radiation is right (the engine reproduces the
+reference given the same haze), so the residual red--green gap is the
+microphysics haze. The mean-field cross-section already corrected its
+\emph{magnitude} (the column optical depth, previously $\sim\!8\times$ too large);
+what remains is the haze \emph{vertical distribution}---the microphysics deposits
+its optical depth deeper than the observed profile---which is governed by the
+Step~2 haze production and settling, not by the radiation.
 
 \begin{figure}[t]
   \centering

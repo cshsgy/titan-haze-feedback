@@ -102,7 +102,14 @@ class OpticsParams:
     tau_gas_sw: float = 2.0      # total shortwave gas (CH4-like) optical depth
     ssa_gas_sw: float = 0.0      # gas absorbs in SW (Rayleigh scattering ignored)
     tau_gas_lw_gray: float = 0.0  # optional extra gray LW continuum (lines); CIA is explicit
-    prescribed_haze: bool = False  # use observational prescribed haze instead of microphysics
+    prescribed_haze: bool = False  # back-compat: True => haze_mode='prescribed'
+    # haze cross-section model: 'rdg' (mean-field aggregate optics, physical),
+    # 'gray' (Q_ext pi r_a^2), or 'prescribed' (observational optical depths)
+    haze_mode: str = "rdg"
+    # scale on the RDG monomer absorption, anchoring the (uncertain) tholin
+    # absorption to the observed haze opacity (Titan tholins absorb more than
+    # the Khare lab values); 3.0 -> visible column tau ~ Doose's ~8
+    haze_abs_scale: float = 3.0
 
 
 def haze_extinction_per_length(n, r_a, p: OpticsParams):
@@ -151,6 +158,26 @@ def shortwave_optics(column, micro, p: OpticsParams):
     return combine(th, p.ssa_haze_sw, p.g_haze_sw, tg, p.ssa_gas_sw, 0.0)
 
 
+def haze_band_tau(column, micro, p: OpticsParams, band_centers, kind,
+                  omega0_band=None):
+    """Per-band haze optical depth tau[nband, nlyr] for the selected haze model.
+
+    ``kind`` is 'v' (shortwave) or 'i' (longwave).  Modes: 'rdg' (mean-field
+    aggregate optics from the microphysics), 'gray' (Q_ext pi r_a^2), 'prescribed'
+    (observational optical depths).
+    """
+    nb = len(band_centers)
+    mode = "prescribed" if p.prescribed_haze else p.haze_mode
+    if mode == "prescribed":
+        return prescribed_haze_layer_tau(column, band_centers, kind=kind)
+    if mode == "rdg":
+        from .aggregate_optics import aggregate_haze_layer_tau
+        d = micro.params.d_mono
+        return p.haze_abs_scale * aggregate_haze_layer_tau(
+            column, micro, band_centers, omega0_band, d, pure_absorber=(kind == "i"))
+    return np.broadcast_to(layer_haze_tau(column, micro, p), (nb, column.nlyr))
+
+
 def longwave_optics_ck(column, micro, cia, ck_lw, p: OpticsParams, comp=None):
     """Correlated-k longwave optics: per (band, Gauss-point) wave.
 
@@ -164,10 +191,7 @@ def longwave_optics_ck(column, micro, cia, ck_lw, p: OpticsParams, comp=None):
     tau_gas = ck_lw.layer_tau(column)                 # (nband, ngauss, nlyr)
     tau_cia = cia.optical_depth(column, comp)         # (nband, nlyr)
     nb, ng, nlyr = tau_gas.shape
-    if p.prescribed_haze:
-        haze_band = prescribed_haze_layer_tau(column, ck_lw.bands, kind="i")  # (nb, nlyr)
-    else:
-        haze_band = np.broadcast_to(layer_haze_tau(column, micro, p), (nb, nlyr))
+    haze_band = haze_band_tau(column, micro, p, ck_lw.bands, "i")   # (nb, nlyr)
     nwave = nb * ng
     tau = np.empty((nwave, nlyr))
     for b in range(nb):
@@ -194,12 +218,9 @@ def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
     """
     tau_gas = ck.layer_tau(column, comp)              # (nband, ngauss, nlyr)
     nb, ng, nlyr = tau_gas.shape
-    if p.prescribed_haze:
-        haze_band = prescribed_haze_layer_tau(column, ck.bands, kind="v")  # (nb, nlyr)
-    else:
-        haze_band = np.broadcast_to(layer_haze_tau(column, micro, p), (nb, nlyr))
-    nwave = nb * ng
     omega0_b, g_b = spectral_haze_sw(tuple(np.round(ck.bands, 3)))   # per band
+    haze_band = haze_band_tau(column, micro, p, ck.bands, "v", omega0_b)  # (nb, nlyr)
+    nwave = nb * ng
     tau = np.empty((nwave, nlyr))
     ssa = np.empty((nwave, nlyr))
     g_wave = np.empty(nwave)
