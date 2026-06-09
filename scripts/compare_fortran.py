@@ -44,16 +44,22 @@ def load_fortran(run_dir: Path):
         if T.ndim != 2 or T.shape[0] < 2:
             return None
         P = T[0]                                   # pressure grid [Pa]
-        Tprof = T[-1]                              # last (most evolved) snapshot
-        if not np.all(np.isfinite(Tprof)):
-            print("warning: Fortran temperature snapshot contains NaN")
+        # the run diverges to NaN in its final snapshots; take the last FULLY
+        # FINITE temperature row (row 0 is the pressure grid, so start at 1)
+        valid = [i for i in range(1, T.shape[0]) if np.all(np.isfinite(T[i]))]
+        if not valid:
+            print("warning: Fortran temperatures.txt has no finite snapshot")
             return None
-        out = {"P": P, "T": Tprof}
+        k = valid[-1]
+        out = {"P": P, "T": T[k]}
         for key, fname in (("sw", "sw.txt"), ("lw", "lw.txt")):
             f = run_dir / fname
             if f.exists():
                 a = np.loadtxt(f)
-                out[key] = (a[-1] if a.ndim == 2 else a) * TITAN_DAY  # K/Titan-day
+                # sw/lw rows are one-per-snapshot (offset by the pressure row),
+                # so the heating for snapshot k is row k-1
+                row = a[k - 1] if a.ndim == 2 else a
+                out[key] = row * TITAN_DAY                       # K/Titan-day
         return out
     except Exception as e:
         print(f"warning: could not parse Fortran outputs: {e}")

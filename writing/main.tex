@@ -185,7 +185,7 @@ gas optical depth is $\tau = k(P,T)\,u$ with $u$ the CH$_4$ column abundance in
 km-amagat; all $420$ (band, Gauss-point) sub-intervals are solved in a single
 multi-wave DISORT call and recombined by the Gauss weights, with the per-band
 solar flux integrated from the Houghton spectrum and scaled to Titan's orbit
-($\sum$ bands $=\SI{14.8}{W.m^{-2}}$). The CH$_4$ windows let sunlight through to
+($9.5\,$AU, $\sum$ bands $=\SI{15.1}{W.m^{-2}}$). The CH$_4$ windows let sunlight through to
 the surface while the bands absorb aloft; CH$_4$ alone absorbs
 $\approx\!\SI{1.4}{W.m^{-2}}$, peaking at $\sim\!14\,\mathrm{K}$ per Titan day in
 the stratosphere.
@@ -204,7 +204,7 @@ The solver reaches a genuine steady state with energy closed to
 $\sim\!0.1$--$1\,\mathrm{W\,m^{-2}}$. Driven by the Step~2 microphysics haze
 (through the RDG cross-section) it has the right vertical structure---a stratopause,
 a cold tropopause near $74\,\mathrm{K}$, a $\sim\!92\,\mathrm{K}$ surface---with a
-stratopause near $145\,\mathrm{K}$, up from $\sim\!115\,\mathrm{K}$ with the old
+stratopause near $150\,\mathrm{K}$, up from $\sim\!115\,\mathrm{K}$ with the old
 gray cross-section but still below the observed $\sim\!190\,\mathrm{K}$
 (Fig.~\ref{fig:ebal}, red).
 
@@ -249,7 +249,7 @@ convergence). Both models are at steady state.
 
 Figure~\ref{fig:fortran} overlays three profiles on a shared pressure
 coordinate. Driven by the Step~2 microphysics haze with mean-field optics (red),
-our model has the right structure and a $\sim\!145\,\mathrm{K}$ stratopause;
+our model has the right structure and a $\sim\!150\,\mathrm{K}$ stratopause;
 driven instead by the \emph{prescribed} haze (green)---the observational optical
 depths the reference uses, in the same radiative engine---it reaches
 $\sim\!200\,\mathrm{K}$ and tracks the reference (black) closely. This isolates
