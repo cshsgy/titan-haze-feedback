@@ -296,15 +296,51 @@ $1\%$, the longwave haze to $\sim\!10\%$, and Rayleigh and CIA to within their
 (small) magnitudes. The only outlier is the CH$_4$ shortwave gas, where ours
 runs $\sim\!1.65\times$ the reference, but in absolute terms that band is
 optically thin ($\tau\lesssim0.01$ in the column) and contributes negligibly to
-the heating. Because the opacities match where the heating rates differ, the
-mid-atmosphere discrepancy is \emph{not} an opacity error: it is attributable to
-the radiative-transfer solver itself---our eight-stream discrete-ordinates
-treatment versus the reference's delta-Eddington two-stream (shortwave) and
-hemispheric-mean (longwave), which handle the strongly forward-scattering haze
-($\omega_0\approx0.9$ in the visible) differently. The breakdown also exposes a
-genuine opacity difference confined to the very top ($P<10\,\mathrm{Pa}$), where
-our haze column is thinner than the reference's---an upper-atmosphere effect
-distinct from the mid-altitude solver difference.
+the heating. Since the opacities match where the heating rates differ, the
+mid-atmosphere difference is \emph{not} an opacity error, leaving the
+radiative-transfer solver as the remaining candidate. The breakdown also exposes
+a genuine opacity difference confined to the very top ($P<10\,\mathrm{Pa}$),
+where our haze column is thinner than the reference's---an upper-atmosphere
+effect distinct from the mid-altitude question.
+
+We test the solver hypothesis directly by passing the \emph{same} optics through
+DISORT at $N_{\mathrm{str}}=2,4,8,16$ and comparing each to the reference at the
+same state (Fig.~\ref{fig:streams}). The result is more discriminating than a
+single ``solver'' attribution. In the \emph{shortwave} the stream count barely
+matters---all four solutions collapse onto one another and onto the reference
+through the mid-atmosphere, and our converged eight-stream solution is in fact
+the \emph{closest} to the reference (mean mid-altitude difference
+$0.5\,\mathrm{K\,day^{-1}}$, versus $1.6$ at two streams). The reference's
+delta-Eddington two-stream, designed to reproduce the multi-stream result for a
+forward-scattering medium, evidently does so here; the residual few-percent
+shortwave difference is therefore not the angular quadrature. In the
+\emph{longwave}, by contrast, reducing to two streams moves our heating
+\emph{toward} the reference (mean mid-altitude difference $2.9\to2.1\,\mathrm{
+K\,day^{-1}}$), consistent with its hemispheric-mean ($\bar\mu=\tfrac12$) being a
+two-stream method---but only about a third of the $\sim\!12\%$ longwave gap is
+recovered this way, so the angular treatment is a contributor, not the whole
+story. The remainder is consistent with the differing longwave continuum (our
+band-averaged HITRAN CIA vs.\ the reference's exponential-sum transmission fits)
+and the $\sim\!10\%$ longwave-haze offset seen in the breakdown. Net: through the
+mid-atmosphere the two engines agree to within $\sim\!5\%$ (shortwave) and
+$\sim\!12\%$ (longwave); the shortwave agreement is solver-independent, while the
+longwave residual is part angular quadrature and part continuum, not a single
+cause.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/solver_streams.png}
+  \caption{Solver test: heating rates from our DISORT optics at
+    $N_{\mathrm{str}}=2,4,8,16$ (coloured) against the reference two-stream model
+    (dashed), at the same state. Shaded: mid-altitude $10$--$100\,\mathrm{Pa}$.
+    Shortwave (left) is insensitive to the stream count---the curves collapse and
+    the eight-stream solution best matches the reference---so the shortwave
+    difference is not the angular quadrature. Longwave (right) moves toward the
+    reference as the stream count drops to two, matching its hemispheric-mean
+    treatment, but recovers only part of the gap. (The longwave top
+    $P\lesssim2\,\mathrm{Pa}$ is the reference's unconverged, oscillating region.)}
+  \label{fig:streams}
+\end{figure}
 
 \begin{figure}[t]
   \centering
