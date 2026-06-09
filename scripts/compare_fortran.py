@@ -32,9 +32,19 @@ from rt.energy_balance import radiative_equilibrium
 TITAN_DAY = 1.378e6   # s
 
 
-def load_fortran(run_dir: Path):
-    """Load Fortran outputs: temperatures.txt (row0=pressure[Pa], last row=T[K]),
-    sw.txt/lw.txt (heating rate [K/s], last row).  Returns dict or None."""
+def load_fortran(run_dir: Path, navg: int = 20):
+    """Load Fortran outputs: temperatures.txt (row0=pressure[Pa], snapshots[K]),
+    sw.txt/lw.txt (heating rate [K/s] per snapshot).
+
+    The reference run does NOT reach a steady state in its upper atmosphere
+    (P < ~4 Pa): those layers oscillate by tens of K between snapshots about a
+    quasi-equilibrium mean (the explicit time-stepper is unstable for the thin,
+    radiatively-fast top layers, despite adaptive timestep reduction).  Below
+    ~10 Pa the profile is converged (snapshot-to-snapshot std < 2.5 K).  So we
+    return the TIME-AVERAGE over the last ``navg`` finite snapshots plus its std,
+    which is a far more representative reference than any single snapshot and
+    exposes where the reference itself is unconverged.  Returns dict or None.
+    """
     T_file = run_dir / "temperatures.txt"
     if not T_file.exists():
         return None
@@ -43,22 +53,23 @@ def load_fortran(run_dir: Path):
         if T.ndim != 2 or T.shape[0] < 2:
             return None
         P = T[0]                                   # pressure grid [Pa]
-        # the run diverges to NaN in its final snapshots; take the last FULLY
-        # FINITE temperature row (row 0 is the pressure grid, so start at 1)
         valid = [i for i in range(1, T.shape[0]) if np.all(np.isfinite(T[i]))]
         if not valid:
             print("warning: Fortran temperatures.txt has no finite snapshot")
             return None
-        k = valid[-1]
-        out = {"P": P, "T": T[k]}
+        sel = valid[-navg:]                         # last navg finite snapshots
+        out = {"P": P, "T": T[sel].mean(0), "T_std": T[sel].std(0),
+               "n_avg": len(sel), "n_total": len(valid)}
         for key, fname in (("sw", "sw.txt"), ("lw", "lw.txt")):
             f = run_dir / fname
             if f.exists():
                 a = np.loadtxt(f)
-                # sw/lw rows are one-per-snapshot (offset by the pressure row),
-                # so the heating for snapshot k is row k-1
-                row = a[k - 1] if a.ndim == 2 else a
-                out[key] = row * TITAN_DAY                       # K/Titan-day
+                if a.ndim == 2:
+                    # sw/lw row j-1 corresponds to temperature snapshot row j
+                    rows = [k - 1 for k in sel if 0 <= k - 1 < a.shape[0]]
+                    out[key] = a[rows].mean(0) * TITAN_DAY       # K/Titan-day
+                else:
+                    out[key] = a * TITAN_DAY
         return out
     except Exception as e:
         print(f"warning: could not parse Fortran outputs: {e}")
@@ -87,21 +98,28 @@ def main():
 
     # compare vs PRESSURE (all share the pressure coordinate)
     fig, ax = plt.subplots(1, 2, figsize=(11, 5.5))
-    ax[0].plot(eq.T, eq.P, "r-", lw=1.8, label="this work (microphysics haze)")
-    ax[0].plot(eqp.T, eqp.P, "C2-", lw=1.8, label="this work (prescribed haze)")
-    ax[1].plot(fx.sw_heating, eq.P_mid, "C0", label="SW (this work)")
-    ax[1].plot(fx.lw_heating, eq.P_mid, "C1", label="LW (this work)")
+    ax[0].plot(eq.T, eq.P, "r-", lw=1.8, label="DISORT (microphysics haze)")
+    ax[0].plot(eqp.T, eqp.P, "C2-", lw=1.8, label="DISORT (prescribed haze)")
+    ax[1].plot(fx.sw_heating, eq.P_mid, "C0", label="SW (DISORT)")
+    ax[1].plot(fx.lw_heating, eq.P_mid, "C1", label="LW (DISORT)")
 
     if fort is not None:
-        print(f"overlaying Fortran outputs from {run_dir}")
-        ax[0].plot(fort["T"], fort["P"], "k--", lw=1.5, label="example_bowen_fort")
+        print(f"overlaying Fortran outputs from {run_dir} "
+              f"(mean of last {fort['n_avg']}/{fort['n_total']} snapshots)")
+        lbl = f"example_bowen_fort (mean of last {fort['n_avg']})"
+        ax[0].plot(fort["T"], fort["P"], "k--", lw=1.5, label=lbl)
+        if "T_std" in fort:
+            # shade +-1 sigma: marks the unconverged (oscillating) upper atmosphere
+            ax[0].fill_betweenx(fort["P"], fort["T"] - fort["T_std"],
+                                fort["T"] + fort["T_std"], color="k", alpha=0.15,
+                                label=r"Fortran $\pm1\sigma$ (unconverged top)")
         if "sw" in fort:
             ax[1].plot(fort["sw"], fort["P"], "k--", label="SW (Fortran)")
         if "lw" in fort:
             ax[1].plot(fort["lw"], fort["P"], "k:", label="LW (Fortran)")
         title_note = "vs reference Fortran model (TAM-derived)"
     else:
-        print("Fortran outputs not found -- plotting this work only.")
+        print("Fortran outputs not found -- plotting DISORT only.")
         print("Run scripts/run_fortran.sh to enable the overlay.")
         title_note = "(run scripts/run_fortran.sh for the Fortran overlay)"
 

@@ -266,10 +266,15 @@ Step~2 haze production and settling, not by the radiation.
   \includegraphics[width=\textwidth]{figs/fortran_comparison.png}
   \caption{Our DISORT energy balance with the Step~2 \emph{microphysics} haze
     (red) and with the observational \emph{prescribed} haze (green), versus the
-    reference TAM-lineage correlated-$k$ Fortran model (black), on a shared
-    pressure axis. With the same haze the engines agree (green vs.\ black); the
-    red--green gap is the microphysics haze. Right: shortwave heating and
-    longwave cooling.}
+    reference TAM-lineage correlated-$k$ Fortran model (black, time-mean of the
+    last 20 snapshots), on a shared pressure axis. With the same haze the engines
+    agree (green vs.\ black); the red--green gap is the microphysics haze. Right:
+    shortwave heating and longwave cooling. The grey band is the reference's
+    $\pm1\sigma$ snapshot scatter: its explicit time-stepper does not reach a
+    steady state above $\sim\!4\,\mathrm{Pa}$ (the thin, radiatively-fast top
+    layers oscillate by tens of K), so the upper-atmosphere comparison there is
+    against an unconverged reference; below $\sim\!10\,\mathrm{Pa}$ the reference
+    is converged ($\sigma<2.5\,\mathrm{K}$).}
   \label{fig:fortran}
 \end{figure}
 
