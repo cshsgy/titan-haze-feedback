@@ -94,6 +94,50 @@ def write_presc_haze(name: str, sw: HazeBand, lw: HazeBand, data_dir=_DATA):
     return out
 
 
+def _column_on_pl(atm, pl):
+    """Build a :class:`rt.column.Column` whose levels are the pressures ``pl``
+    (ascending in pressure = top->surface), ordered ascending in altitude."""
+    from rt.column import Column
+    P_asc = pl[::-1]                                  # descending P = ascending z
+    zg = atm.z
+    Pg = atm.pressure(zg)
+    order = np.argsort(np.log(Pg))
+    z_asc = np.interp(np.log(P_asc), np.log(Pg)[order], zg[order])
+    return Column(z_asc, atm.temperature(z_asc), P_asc, atm.gravity(z_asc))
+
+
+def microphysics_haze(micro, atm, op=None, data_dir=_DATA) -> tuple[HazeBand, HazeBand]:
+    """Prescribed-haze tables driven by the Step 2 microphysics ``micro``.
+
+    Mirrors the DISORT coupled run's haze exactly: the optical-depth *amount* is
+    the mean-field (RDG) aggregate cross-section times the monomer column
+    ``n*Nbar`` (``rt.optics.haze_band_tau`` in 'rdg' mode, same ``haze_abs_scale``
+    and monomer radius), evaluated on the observational ``wn``/``pl`` grids and
+    cumulated top-down.  The single-scattering albedo and asymmetry keep the
+    observational spectral shape (a composition property the microphysics does not
+    change); the longwave is a pure absorber (ssa=g=0).  Returns (sw, lw) bands
+    ready for :func:`write_presc_haze`.
+    """
+    from rt.optics import haze_band_tau, OpticsParams, spectral_haze_sw
+    op = op or OpticsParams(haze_mode="rdg")
+    obs_sw, obs_lw = observational_haze(data_dir)
+    col = _column_on_pl(atm, obs_sw.pl)               # pl shared by both bands
+
+    def cumulate(tau_layer, nwn):
+        # tau_layer (nwn, nlyr), ascending z (surface->top).  Cumulative-from-top
+        # at each pl level (top->surface): tau_pl[0]=0 (top), tau_pl[-1]=column total.
+        revcum = np.cumsum(tau_layer[:, ::-1], axis=1)[:, ::-1]        # sum i..top
+        cum_full = np.concatenate([revcum, np.zeros((nwn, 1))], axis=1)
+        return cum_full[:, ::-1].T                                    # (npl, nwn)
+
+    om = spectral_haze_sw(tuple(np.round(obs_sw.wn, 3)))[0]
+    tau_v = cumulate(haze_band_tau(col, micro, op, obs_sw.wn, "v", om), obs_sw.wn.size)
+    tau_i = cumulate(haze_band_tau(col, micro, op, obs_lw.wn, "i"), obs_lw.wn.size)
+    sw = HazeBand(wn=obs_sw.wn, pl=obs_sw.pl, tau=tau_v, ssa=obs_sw.ssa, g=obs_sw.g)
+    lw = HazeBand(wn=obs_lw.wn, pl=obs_lw.pl, tau=tau_i, ssa=obs_lw.ssa, g=obs_lw.g)
+    return sw, lw
+
+
 def observational_haze(data_dir=_DATA) -> tuple[HazeBand, HazeBand]:
     """The observational ``preschaze`` tables as (sw, lw) :class:`HazeBand`s.
 

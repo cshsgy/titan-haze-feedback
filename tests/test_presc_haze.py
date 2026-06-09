@@ -86,9 +86,39 @@ def test_cumulative_tau_monotone():
     check("lw g == 0", np.allclose(lw.g, 0.0))
 
 
+def test_microphysics_haze_matches_disort():
+    """The microphysics->preschaze mapping must reproduce the DISORT coupled
+    run's haze optical depth (same RDG optics), with a valid cumulative table."""
+    from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
+    from coupling import microphysics_haze, observational_haze
+    from coupling.presc_haze import _column_on_pl
+    from rt.optics import haze_band_tau, OpticsParams, spectral_haze_sw
+
+    atm = Atmosphere.titan_reference()
+    micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
+    sw, lw = microphysics_haze(micro, atm)
+    obs_sw, _ = observational_haze()
+
+    check("mphaze sw shape", sw.tau.shape == obs_sw.tau.shape)
+    check("mphaze sw cumulative", (np.diff(sw.tau, axis=0) >= -1e-9).all())
+    check("mphaze sw top row ~0", np.allclose(sw.tau[0], 0.0))
+    check("mphaze lw pure absorber", np.allclose(lw.ssa, 0) and np.allclose(lw.g, 0))
+    # column-total (surface row) == direct DISORT haze_band_tau column sum
+    col = _column_on_pl(atm, obs_sw.pl)
+    om = spectral_haze_sw(tuple(np.round(obs_sw.wn, 3)))[0]
+    direct = haze_band_tau(col, micro, OpticsParams(haze_mode="rdg"),
+                           obs_sw.wn, "v", om).sum(axis=1)
+    check("mphaze sw total == DISORT haze sum",
+          np.allclose(sw.tau[-1], direct, rtol=1e-9),
+          f"max rel {np.abs(sw.tau[-1]-direct).max():.2e}")
+    # ssa/g keep the observational shape
+    check("mphaze sw ssa == observational", np.allclose(sw.ssa, obs_sw.ssa))
+
+
 if __name__ == "__main__":
     test_roundtrip_observational()
     test_format_matches_fortran_reader()
     test_cumulative_tau_monotone()
+    test_microphysics_haze_matches_disort()
     print(f"\n{_PASS}/{_PASS + _FAIL} passed")
     sys.exit(1 if _FAIL else 0)

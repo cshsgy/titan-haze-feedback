@@ -90,13 +90,20 @@ mapping our DISORT coupled run already uses.
    format, and `scripts/roundtrip_haze.py` feeds the *observational* haze back
    through the writer → Fortran → reproduces the stock `preschaze` `T(z)` to
    **0.000 K**. Writer + format validated against the real reader.
-2. **One-shot** (next): microphysics haze on the `titan_reference` T → one
-   Fortran run → compare to the DISORT coupled run (~140 K stratopause expected).
-   Needs `microphysics_haze(micro, atm)` in `presc_haze.py` (RDG τ from `n·N̄` on
-   the SW/LW wn grids, cumulated; ω₀/g from the observational spectral shape; LW
-   pure absorber).
-3. **Iterate**: run the loop to a fixed point; report the feedback (dT vs
-   d(opacity), gain, stability).
+2. **One-shot** — DONE. `coupling.microphysics_haze(micro, atm)` maps the Step 2
+   profile to the tables (RDG τ from `n·N̄` on the SW/LW wn grids, cumulated;
+   ω₀/g keep the observational spectral shape; LW pure absorber) and reproduces
+   the DISORT coupled run's haze τ to `rtol=1e-9` (`tests/test_presc_haze.py`).
+   `scripts/oneshot_haze.py` drives BOTH engines with that haze: DISORT
+   stratopause 142 K, Fortran 131 K (tropopause 72 K both); max |ΔT| 15.5 K in
+   the lower stratosphere — the RT-engine difference (8-stream vs two-stream) +
+   the Fortran's residual top oscillation, not a coupling error. The wiring
+   delivers the intended optics.
+3. **Iterate** (next): close the loop — Fortran `T` → `Atmosphere.from_profile` →
+   `solve_bvp_profile` → `microphysics_haze` → rewrite tables → re-run, with `T`
+   under-relaxation, to a fixed point; report the feedback (dT vs d(opacity),
+   gain, stability). Warm-start each Fortran run from the previous `T`
+   (`init_t=1`) to cut cost.
 
 ## Risks / decisions to make
 

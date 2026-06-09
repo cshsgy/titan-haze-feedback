@@ -11,6 +11,7 @@ from .presc_haze import (
     parse_presc,
     write_presc_haze,
     observational_haze,
+    microphysics_haze,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "parse_presc",
     "write_presc_haze",
     "observational_haze",
+    "microphysics_haze",
 ]
