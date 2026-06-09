@@ -84,6 +84,8 @@ PROGRAM RUN_PLANETARY_RADIATION
   real                            :: dTdz_bot
   real                            :: k_top
   real                            :: k_bot
+  real                            :: dT_cap = 1.0   ! per-layer per-step |dT| cap [K]
+  real                            :: dT_step
   ! Convective adjustment / diagnostics
   character(len=16)               :: convective_scheme = 'dry'
   real                            :: moist_conv_tau = 7200.0
@@ -374,13 +376,18 @@ PROGRAM RUN_PLANETARY_RADIATION
         tdt(1,1,k) = tdt(1,1,k) + grav/cp_air * (k_top*dTdz_top - k_bot*dTdz_bot)/(phalf(1,1,k+1)-phalf(1,1,k-1))
     enddo
 
-    if (ANY(ABS(time_step*tdt) .ge. 80.)) then
-    !if (.false.) then
-        t2 = t + 0.1*time_step * tdt
-        print *, 'Decreasing timestep to prevent excessive heat/cooling'
-    else
-        t2 = t + time_step * tdt
-    end if
+    ! Per-layer step limiter: cap |dT| per step at dT_cap, scaling each layer's
+    ! forward-Euler step independently.  The original global cap reduced the WHOLE
+    ! column to 0.1*dt only when SOME layer exceeded 80 K, which still let the
+    ! radiatively-fast top layers move ~20 K/step and oscillate by tens of K.
+    ! Capping each layer at a few K bounds that oscillation while leaving the
+    ! deep layers (small tendency, never capped) untouched; exact at steady state
+    ! (tdt = 0 -> no change), so it changes the path, not the equilibrium.
+    do k = 1, L_LAYERS
+        dT_step = time_step * tdt(1,1,k)
+        if (abs(dT_step) > dT_cap) dT_step = sign(dT_cap, dT_step)
+        t2(1,1,k) = t(1,1,k) + dT_step
+    end do
     
     call apply_selected_convection(t2(1,1,:), pfull(1,1,:), phalf(1,1,:), zfull(1,1,:), ch4_profile_q, &
                                    convective_cape, convective_cin, convective_flag, convective_p_lcl, &

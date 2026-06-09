@@ -95,12 +95,13 @@ mapping our DISORT coupled run already uses.
 
 ## Risks / decisions to make
 
-1. **Unconverged Fortran top.** The haze source sits at ~1 Pa (Gaussian at
-   ~400 km), exactly where the Fortran oscillates (≳ tens of K, P ≲ 4 Pa). The
-   coupled feedback there will inherit that noise. Options: (a) fix the Fortran's
-   explicit top stepper / sub-step the thin top layers; (b) cap the production
-   region / freeze the top haze; (c) couple only below ~4 Pa and prescribe above.
-   **This is the main blocker and should be decided first.**
+1. **Unconverged Fortran top — RESOLVED.** The haze source sits at ~1 Pa, where
+   the Fortran used to oscillate by ~24 K. Fixed via option (a): a **per-layer
+   step cap** (`dT_cap=1.0 K` in `run_planetary_radiation.F90`) bounds the top
+   oscillation to ~2.5 K @1 Pa with the converged profile unchanged (see
+   `docs/rt_discrepancies.md`). The coupled feedback at the haze source is now on
+   stable ground; the residual ~2.5 K is averaged out by the last-20-snapshot
+   mean.
 2. **Cost.** Each outer iteration is a full Fortran run (num_i steps). Warm-start
    from the previous T and cut `num_i` once warm; expect a handful of outer
    iterations.

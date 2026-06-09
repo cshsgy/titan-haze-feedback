@@ -7,6 +7,22 @@ Our DISORT model (`src/rt/`) vs. the reference Fortran TAM-lineage model
 pressure/temperature profile and the prescribed (observational) haze — and
 comparing per-layer heating rates and fluxes (`scripts/rt_diagnostics.py`).
 
+## Reference top convergence (fixed)
+
+The reference's explicit forward-Euler time-stepper did not reach a steady state
+above ~4 Pa: the thin, radiatively- and conductively-fast top layers oscillated
+by **up to ~24 K** (snapshot-to-snapshot std), and its global step limiter
+(reduce the whole column to 0.1·dt only when *some* layer's step exceeds 80 K)
+still let those layers move ~20 K/step. Replacing it with a **per-layer step cap**
+(`dT_cap`, run_planetary_radiation.F90 — cap each layer's `|ΔT|` per step
+independently) bounds the oscillation without touching the deep layers (small
+tendency, never capped) and is exact at steady state. At `dT_cap = 1.0 K` the run
+is stable (40/40 finite snapshots) and the top oscillation drops to **~2.5 K @1 Pa
+(≤3.6 K for P<10 Pa)**; the converged profile is unchanged (stratopause 195 K,
+tropopause 68 K, surface 92 K). Smaller caps (0.5 K) destabilise via the slower
+spin-up's coupling to convection/surface, so ~1 K is the practical floor. This
+makes the haze-source region (~1 Pa) usable for the Step 3 coupling.
+
 ## Same-state quantitative comparison
 
 Fed identical T(p) and haze, the two engines **agree to ~10–20 % through the bulk

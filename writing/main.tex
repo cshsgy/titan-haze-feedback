@@ -279,11 +279,11 @@ Step~2 haze production and settling, not by the radiation.
     last 20 snapshots), on a shared pressure axis. With the same haze the engines
     agree (green vs.\ black); the red--green gap is the microphysics haze. Right:
     shortwave heating and longwave cooling. The grey band is the reference's
-    $\pm1\sigma$ snapshot scatter: its explicit time-stepper does not reach a
-    steady state above $\sim\!4\,\mathrm{Pa}$ (the thin, radiatively-fast top
-    layers oscillate by tens of K), so the upper-atmosphere comparison there is
-    against an unconverged reference; below $\sim\!10\,\mathrm{Pa}$ the reference
-    is converged ($\sigma<2.5\,\mathrm{K}$).}
+    $\pm1\sigma$ snapshot scatter: its explicit forward-Euler stepper formerly
+    oscillated by up to $\sim\!24\,\mathrm{K}$ above $\sim\!4\,\mathrm{Pa}$; a
+    per-layer step cap reduces this to $\sim\!2.5\,\mathrm{K}$ at the model top
+    with the converged profile unchanged, so the upper-atmosphere comparison is
+    now against an essentially converged reference.}
   \label{fig:fortran}
 \end{figure}
 

@@ -143,10 +143,12 @@ modules (`haze_mod`, `read_clim_mod`) were missing from the upload and are
 `saturate` and the prescribed-haze interpolation); see that dir's README for
 provenance.
 
-**Caveats to track:** the run does not reach steady state above ~4 Pa (the thin
-top layers oscillate by tens of K; the comparison uses the time-mean of the last
-20 snapshots), and it diverges to NaN in its final snapshots (take the last
-finite one). See `docs/rt_discrepancies.md`.
+**Top convergence (fixed).** The explicit stepper used to oscillate by up to
+~24 K above ~4 Pa; a **per-layer step cap** (`dT_cap=1.0 K` in
+`run_planetary_radiation.F90`) now bounds it to ~2.5 K @1 Pa (≤3.6 K for
+P<10 Pa) with the converged profile unchanged — the haze-source region is now
+usable for Step 3. The comparison still uses the time-mean of the last 20
+snapshots. See `docs/rt_discrepancies.md`.
 
 ### DISORT cross-check (`src/rt/`)
 
@@ -207,6 +209,7 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       [`docs/step3_coupling.md`](docs/step3_coupling.md): a Python loop regenerates
       the Fortran's prescribed-haze files (`coupledhaze*.txt`) from the Step 2
       microphysics each iteration and re-runs the engine — **no Fortran source
-      changes** (uses the existing `haze_data='presc'` path). Main blocker: the
-      reference's unconverged top (P ≲ 4 Pa) coincides with the haze source.
+      changes** (uses the existing `haze_data='presc'` path). The former blocker
+      (reference's unconverged top at the haze source) is **resolved** — a
+      per-layer step cap cut the top oscillation ~24→2.5 K.
 - [ ] Step 4 — photochemistry coupling
