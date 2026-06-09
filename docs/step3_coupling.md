@@ -126,15 +126,42 @@ $48\,\mathrm{K}$). So the radiative$\leftrightarrow$microphysical feedback is
 **strong and destabilising** (the stratopause-warming haze feedback has gain
 $>1$ near the cool branch), with a sharp transition between branches.
 
-**Implication / next steps.** A converged fixed point needs (a) harder damping
-(`relax<=0.25`, now the default) and more iterations, and/or (b) a continuation /
-root-finding method (e.g. solve $T = F(\mathrm{haze}(T))$ with a damped Newton or
-bisection on a scalar feedback parameter) rather than fixed-point iteration. The
-two-branch structure is itself the headline Step-3 finding: Titan's haze feedback
-is strong enough to be bistable in this 1-D coupled model. Whether the cool
-branch is physical or an artifact of the sharp microphysics transition at
-$\sim\!137\,\mathrm{K}$ is the question to resolve next (inspect `n*Nbar` and the
-column $\tau$ across the transition).
+### Diagnosis of the ~137 K transition
+
+Is the jump a microphysics regime change, a mapping artifact, or a real
+radiative feedback? Two cheap experiments (no Fortran) settle it:
+
+1. **Microphysics is smooth** (`scripts/diagnose_transition.py`,
+   `writing/figs/transition_diagnosis.png`). Sweeping a family of input
+   temperature profiles (stratopause $128$–$225\,\mathrm{K}$) and computing the
+   microphysics haze for each, the column $\tau$, the $\tau$-weighted centroid,
+   and `rho_h` all vary **smoothly** — largest adjacent change $\le3.5\%$, with
+   **no cliff at $137\,\mathrm{K}$**. (The BVP only overflows above
+   $\sim\!230\,\mathrm{K}$, a separate numerical limit.) The map $T\to$ haze is
+   continuous; the bistability is not a microphysics artifact. The haze centroid
+   rises smoothly with $T$ ($1714\to770\,\mathrm{Pa}$) — a positive feedback
+   (warmer $\Rightarrow$ haze higher $\Rightarrow$ absorbs higher $\Rightarrow$ warmer).
+
+2. **The radiative transfer is genuinely bistable** (`scripts/rt_multiplicity.py`).
+   Holding the haze **fixed** (the transition-state microphysics haze) and
+   relaxing DISORT to radiative--convective equilibrium from a warm vs.\ a cool
+   start lands on **two different equilibria** — stratopause
+   $158\,\mathrm{K}$ vs.\ $141\,\mathrm{K}$ (max $|\Delta T|\approx31\,\mathrm{K}$).
+   The gap is stable as the residual falls ($1.84\to0.73$, $2000\to4000$
+   iterations), so it is real multiplicity, not incomplete convergence. DISORT is
+   an independent engine from the Fortran, so this is engine-independent.
+
+**Conclusion.** The $\sim\!137\,\mathrm{K}$ transition is a **genuine radiative
+feedback**: the strongly-absorbing haze, smoothly mobile in altitude with
+temperature, gives the 1-D radiative--convective system two stable states
+(warm/high-stratopause and cool/low-stratopause), with gain $>1$ between them. It
+is not a microphysics regime change or a coupling-mapping artifact.
+
+**Next steps.** A converged coupled branch needs harder damping (`relax<=0.25`,
+now the default) or a continuation / damped-Newton solve of
+$T=F(\mathrm{haze}(T))$ that follows one branch; the two branches and the
+absorbing-haze multiple-equilibria mechanism are the headline Step-3 science
+result (Titan's haze feedback is strong enough to be bistable in this model).
 
 ## Risks / decisions to make
 

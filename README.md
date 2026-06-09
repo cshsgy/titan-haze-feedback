@@ -211,9 +211,14 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       **no Fortran source changes** (`haze_data='presc'`). Round-trip + one-shot
       validated (`tests/test_presc_haze.py`, 39 checks). **Finding:** the feedback
       is **strong and near-bistable** — the loop oscillates between a warm
-      (~183 K, ≈observational) and a cool (~131 K, microphysics) stratopause and
-      does not settle under naive iteration; a converged fixed point needs harder
-      damping / a continuation method (see `docs/step3_coupling.md`,
-      `writing/figs/coupled_feedback.png`). The earlier top-oscillation blocker is
-      resolved (per-layer step cap, ~24→2.5 K).
+      (~183 K) and a cool (~131 K) stratopause and does not settle under naive
+      iteration. **Diagnosed** (`scripts/diagnose_transition.py`,
+      `scripts/rt_multiplicity.py`): the microphysics T→haze map is smooth (no
+      cliff), but the RT is **genuinely bistable** for a fixed haze (two
+      radiative–convective equilibria, ~31 K apart, engine-independent) — a real
+      absorbing-haze radiative feedback (haze rises with T → absorbs higher →
+      warmer), not a microphysics or mapping artifact. A converged branch needs
+      harder damping / a continuation method (see `docs/step3_coupling.md`,
+      `writing/figs/{coupled_feedback,transition_diagnosis}.png`). The earlier
+      top-oscillation blocker is resolved (per-layer step cap, ~24→2.5 K).
 - [ ] Step 4 — photochemistry coupling
