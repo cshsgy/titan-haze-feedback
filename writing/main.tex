@@ -57,7 +57,16 @@ continuum lower atmosphere. Solving the full eddy-diffusion problem reproduces
 the haze extinction scale height of Tomasko et al. (2008)
 ($64$ vs.\ $65\,\mathrm{km}$) and a sub-micron characteristic radius consistent
 with de Trenquell\'eon et al. (2025). This law is inexpensive enough to embed
-inside the radiative iteration, closing the feedback loop.
+inside the radiative iteration, closing the feedback loop. Doing so reveals the
+central physical result: the coupled one-dimensional system is \emph{bistable}.
+The strongly-absorbing haze is smoothly mobile in altitude with temperature
+(warmer stratosphere $\Rightarrow$ higher haze $\Rightarrow$ more absorption
+aloft), and this positive feedback gives the radiative--convective system two
+stable equilibria---a warm ($\sim\!183\,\mathrm{K}$) and a cool
+($\sim\!131\,\mathrm{K}$) stratopause---between which naive iteration oscillates.
+We show the bistability is radiative, not microphysical: the temperature-to-haze
+map is smooth, while the radiative transfer is genuinely multi-valued for a fixed
+haze (confirmed in two independent engines).
 \end{abstract}
 
 \section{Introduction}
@@ -107,8 +116,9 @@ The program proceeds in four stages.
     (Sec.~\ref{sec:scaling}). This is the methodological core of the present
     note.
   \item[Step 3 --- Coupled iteration.] Map the microphysical moments to layer
-    optical properties, feed DISORT, update $T(z)$, and iterate to a fixed
-    point; diagnose the feedback (Sec.~\ref{sec:coupling}).
+    optical properties, feed the RT engine, update $T(z)$, and iterate; diagnose
+    the feedback. The coupled system proves \emph{bistable}
+    (Sec.~\ref{sec:coupling}).
   \item[Step 4 --- Photochemistry.] Promote the imposed haze production rate to
     an output of a photochemical module, closing the
     radiation$\leftrightarrow$chemistry$\leftrightarrow$microphysics loop
@@ -589,14 +599,95 @@ single-scattering albedo and asymmetry parameter obtained by opacity weighting.
 The aggregate projected area scales as $\Nbar^{2/\Df}d^2$. The feedback loop is
 then
 \[
-  T(z)\ \xrightarrow{\text{DISORT}}\ \eta(T),\lambda(T,P)
+  T(z)\ \longrightarrow\ \eta(T),\lambda(T,P)
   \ \xrightarrow{\eqref{eq:master}/\S\ref{sec:scaling}}\ n(z),\Nbar(z)
   \ \xrightarrow{\text{optics}}\ \Delta\tau,\omega_0,g
-  \ \xrightarrow{\text{DISORT}}\ T(z),
+  \ \xrightarrow{\text{RT engine}}\ T(z),
 \]
-iterated to a fixed point. The sign and magnitude of the feedback gain
-(e.g. $\dd T/\dd\tau$ at convergence) are read off directly from the converged
-sequence.
+iterated under-relaxed. The sign and strength of the feedback are read from the
+iteration sequence---which, as we show, does not converge to a single fixed point
+but exposes a bistable system.
+
+\subsection{Implementation and the coupled iteration}
+\label{sec:coupling-impl}
+
+We drive the Step~1 engine with the Step~2 haze through its prescribed-haze
+input: each pass maps the microphysics to the engine's per-band, per-level
+optical-depth tables (the same mean-field RDG cross-section used in
+\S\ref{sec:rt}, with the single-scattering albedo and asymmetry kept at the
+observational spectral shape; the longwave is a pure absorber), re-runs the model
+to radiative--convective equilibrium, and feeds the new $T(z)$ back to the
+microphysics, under-relaxed. The interface is validated end-to-end: writing the
+\emph{observational} haze through the same path reproduces the stock prescribed
+$T(z)$ to $0.000\,\mathrm{K}$, and the microphysics-haze tables reproduce the
+optical depth of the in-line DISORT coupled run to machine precision. The engine
+top is first stabilised (a per-layer time-step cap reduces its
+$\lesssim\!4\,\mathrm{Pa}$ oscillation from $\sim\!24$ to $\sim\!2.5\,\mathrm{K}$),
+since the haze source sits there.
+
+\subsection{Result: a bistable haze feedback}
+\label{sec:coupling-result}
+
+The coupled iteration does \emph{not} settle to a single fixed point. It
+oscillates between two states (Fig.~\ref{fig:coupled}): a \emph{warm} branch with
+the stratopause near $183\,\mathrm{K}$ at $8\,\mathrm{Pa}$ (close to the
+prescribed-haze equilibrium) and a \emph{cool} branch near $131$--$135\,\mathrm{K}$
+at $1.3$--$1.7\,\mathrm{Pa}$ (the microphysics-haze state). The branches are
+anti-correlated under naive iteration, and the transition between them is sharp:
+near $T\approx137\,\mathrm{K}$ a $\sim\!1\,\mathrm{K}$ change in the input
+profile flips the equilibrium output by $\sim\!48\,\mathrm{K}$.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/coupled_feedback.png}
+  \caption{Coupled radiative--microphysical iteration. Left: temperature profile
+    per iteration (dashed: the prescribed-haze, no-feedback baseline). Right: the
+    stratopause temperature does not converge but alternates between a warm
+    ($\sim\!183\,\mathrm{K}$) and a cool ($\sim\!131\,\mathrm{K}$) branch.}
+  \label{fig:coupled}
+\end{figure}
+
+\subsection{Diagnosis: a genuine absorbing-haze radiative bistability}
+\label{sec:coupling-diag}
+
+The composite map is $T\!\to\!\text{haze}\!\to\!T$; we isolate each half to locate
+the sharp transition. \emph{First}, the microphysics is smooth: sweeping input
+temperature profiles across stratopause $128$--$225\,\mathrm{K}$ and recomputing
+the haze for each, the column optical depth, the $\tau$-weighted centroid
+pressure, and the haze mass column all vary continuously --- largest adjacent
+change $\le3.5\%$, with no feature at $137\,\mathrm{K}$ (Fig.~\ref{fig:transition}).
+The haze centroid \emph{rises} smoothly with temperature
+($1714\to770\,\mathrm{Pa}$ over that range), the signature of a positive feedback:
+a warmer stratosphere lifts the absorbing haze, which then absorbs higher and
+warms it further. \emph{Second}, the radiative transfer is genuinely
+multi-valued: holding the haze \emph{fixed} (the transition-state haze) and
+relaxing the radiative--convective equilibrium from a warm versus a cool initial
+state lands on two distinct equilibria, stratopause $158\,\mathrm{K}$ versus
+$141\,\mathrm{K}$ ($\Delta T\approx31\,\mathrm{K}$); the separation is stable as
+the residual falls, so it is real multiplicity rather than under-convergence, and
+it reproduces in the independent DISORT engine.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/transition_diagnosis.png}
+  \caption{Microphysics haze response to the input temperature. Haze column
+    optical depth (left), $\tau$-weighted centroid pressure (centre), and
+    cumulative $\tau(p)$ (right) all vary smoothly across the coupled transition
+    (shaded, $\sim\!137\,\mathrm{K}$): the $T\!\to\!$haze map has no cliff, so the
+    bistability is radiative, not microphysical.}
+  \label{fig:transition}
+\end{figure}
+
+Together these identify the $137\,\mathrm{K}$ transition as a \emph{genuine
+radiative feedback}, not a microphysics regime change or a coupling artifact: the
+strongly-absorbing haze, smoothly mobile in altitude with temperature, gives the
+one-dimensional radiative--convective system two stable states with gain $>1$
+between them --- the absorbing-aerosol multiple-equilibria mechanism, here driven
+self-consistently by the aerosol microphysics. A single converged branch (and the
+feedback gain along it) therefore requires a continuation or damped-Newton solve
+of $T=F(\text{haze}(T))$ that tracks one attractor rather than fixed-point
+iteration; the existence of the two branches is itself the principal Step-3
+result.
 
 \section{Photochemistry in the loop (Step 4)}
 \label{sec:photochem}
@@ -649,9 +740,12 @@ a full population-balance run. The spherical$\to$fractal switch at $\Nbar=1$ is
 treated as instantaneous. Background profiles $\eta(T)$, $\lambda(T,P)$ are taken
 from $\mathrm{N_2}$ kinetic theory, $g(z)$ from Titan gravity, and the eddy
 diffusivity $K(z)$ from a standard Titan profile \citep{Vuitton2019}. Charge
-inhibition (a multiplicative factor on $\beta$) is deferred until the base loop
-closes. Tables~\ref{tab:asymp} and \ref{tab:params} and
-Eqs.~\eqref{eq:bvpM}--\eqref{eq:master} define the model to be implemented next.
+inhibition (a multiplicative factor on $\beta$) is deferred. With Steps~1--3
+implemented and the bistable feedback diagnosed, the immediate next steps are a
+continuation/damped-Newton solve to trace a single branch and quantify the
+feedback gain along it, and the Step~4 photochemical production
+(Sec.~\ref{sec:photochem}); charge inhibition and a full population balance are
+the main physics refinements thereafter.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
