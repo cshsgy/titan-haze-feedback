@@ -63,9 +63,12 @@ def main():
     col = build_column(P, Tf)
     micro = solve_bvp_profile(Atmosphere.titan_reference(), DEFAULT, n_nodes=200)
     op = OpticsParams(prescribed_haze=True)          # same haze the Fortran uses
-    ck = CorrelatedKSW(sma_au=9.58)
+    # match the Fortran namelist exactly: sma = 9.5 AU and the diurnally-averaged
+    # insolation cosine at lat=0, Ls=0 (declination=0) -> cosz = 1/pi
+    ck = CorrelatedKSW(sma_au=9.5)
     cklw = CorrelatedKLW()
-    fx = eb.compute_fluxes(col, micro, op=op, ck=ck, ck_lw=cklw)
+    solar = eb.SolarForcing(umu0=1.0 / np.pi)
+    fx = eb.compute_fluxes(col, micro, op=op, solar=solar, ck=ck, ck_lw=cklw)
 
     # our heating in K/s on the same layers (Fortran heating is K/s)
     sw_ours = fx.sw_heating / TITAN_DAY

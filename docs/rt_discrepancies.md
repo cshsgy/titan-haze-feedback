@@ -81,6 +81,25 @@ linear-in-τ Planck source per half-layer and a precomputed band-integrated Plan
 table; ours uses a standard level/layer grid with DISORT's internal Planck. Minor
 but affects exactly where sources are evaluated.
 
+## Solar input (verified, then aligned)
+
+The shortwave **solar spectrum is identical**: both read
+`INPUT/DATA/solar_spectrum_houghton.txt` and band-integrate it onto the same
+`BWNV` edges. Two *scalar* inputs differed and have been aligned in the
+diagnostic so the SW comparison is apples-to-apples:
+
+- **Orbit distance.** Fortran `sma = 9.5` AU (namelist), `sol = solarf·rrsun/sma²`;
+  ours had `CorrelatedKSW(sma_au=9.58)`. ~1.7 % flux difference (∝ 1/sma²).
+- **Insolation cosine.** Fortran is **diurnally averaged** (`diurnal=.false.`) at
+  `testing_lat=0`, `testing_ls=0` → declination 0 → `cosz = 1/π ≈ 0.318`; ours
+  used `umu0 = 0.35`. ~9 % geometry difference.
+
+With `sma=9.5` and `umu0=1/π` the mid-atmosphere SW heating matches almost
+exactly (8 Pa: 36.6 vs 36.6; 25 Pa: 23.9 vs 23.7 K/day). (The coupled model
+itself still uses 9.58 AU — Titan's true semi-major axis — and a representative
+`umu0=0.35`; the *diagnostic* uses the Fortran's exact values for the one-to-one
+comparison.) `albv=0.15`, `albi=0.05` already matched the namelist.
+
 ## What is NOT a discrepancy (verified the same)
 
 - **Correlated-k gas overlap:** both sum k at matched Gauss points under the
