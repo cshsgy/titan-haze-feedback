@@ -64,6 +64,27 @@ def test_cia_table_and_magnitude():
     assert 1e-45 < peak < 1e-43, peak     # HITRAN N2-N2 peak ~2.7e-44
 
 
+def test_correlated_k_ch4_shortwave():
+    """Correlated-k CH4 loads, matches the model bands, and absorbs shortwave."""
+    from rt.correlated_k import CorrelatedKSW, BWNV
+    from rt.optics import shortwave_optics_ck, OpticsParams
+    from rt.cia import Composition
+    import rt.disort_driver as dd
+    ck = CorrelatedKSW(sma_au=9.58)
+    assert ck.nband == 42 and ck.ngauss == 10
+    assert abs(ck.gw.sum() - 1.0) < 1e-3
+    assert 12.0 < ck.solar.sum() < 18.0          # Titan TOA solar ~15 W/m^2
+    _, micro, col = _setup()
+    # CH4-only (no haze) must absorb a positive, sane amount of shortwave
+    class _Z:
+        z, n, r_a = micro.z, micro.n * 0.0, micro.r_a
+    tau, ssa, gh, fb, w = shortwave_optics_ck(col, _Z(), ck, OpticsParams(), Composition())
+    sw = dd.solve_shortwave_spectral(tau, ssa, gh, fb, w, umu0=0.35, albedo=0.1)
+    absorbed = sw[-1] - sw[0]
+    assert 0.3 < absorbed < 4.0, absorbed
+    assert sw[0] > 0                              # some sunlight reaches the surface
+
+
 def test_cia_far_ir_optically_thick():
     """N2-N2 makes the far-IR optically thick and the mid-IR thin (Titan greenhouse)."""
     _, _, col = _setup()

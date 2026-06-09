@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
 from rt.cia import CIABands
+from rt.correlated_k import CorrelatedKSW
 from rt.energy_balance import compute_fluxes, radiative_equilibrium, S0_TITAN
 
 
@@ -32,7 +33,8 @@ def main():
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
 
-    fx0 = compute_fluxes(col, micro)
+    ck = CorrelatedKSW(sma_au=9.58)
+    fx0 = compute_fluxes(col, micro, ck=ck)
     print(f"Solar constant at Titan: {S0_TITAN:.2f} W/m^2")
     inc = fx0.sw_net[-1]
     print(f"SW: TOA net {fx0.sw_net[-1]:.3f}, surface {fx0.sw_net[0]:.3f} W/m^2 "
@@ -44,7 +46,7 @@ def main():
     eq, hist = radiative_equilibrium(col, micro, verbose=True)
     print(f"residual {hist[0]:.0f} -> {hist[-50:].mean():.1f} K/Titan-day (bulk)")
 
-    fxe = compute_fluxes(eq, micro)
+    fxe = compute_fluxes(eq, micro, ck=ck)
 
     # --- figure ---
     fig, ax = plt.subplots(1, 4, figsize=(18, 5.5))
@@ -93,7 +95,7 @@ def main():
 
     for a in ax[:3]:
         a.grid(alpha=0.3); a.set_ylim(0, 450)
-    fig.suptitle("Titan 1-D DISORT energy balance (shortwave gray gas + multiband CIA longwave; "
+    fig.suptitle("Titan 1-D DISORT energy balance (correlated-k CH4 shortwave + multiband CIA longwave; "
                  "haze from Step 2 microphysics)")
     fig.tight_layout()
     out = ROOT / "writing" / "figs" / "energy_balance.png"

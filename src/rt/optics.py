@@ -87,6 +87,34 @@ def shortwave_optics(column, micro, p: OpticsParams):
     return combine(th, p.ssa_haze_sw, p.g_haze_sw, tg, p.ssa_gas_sw, 0.0)
 
 
+def shortwave_optics_ck(column, micro, ck, p: OpticsParams, comp=None):
+    """Correlated-k shortwave optics: per (band, Gauss-point) wave.
+
+    Combines gray haze scattering (constant across bands) with spectral CH4
+    absorption from ``rt.correlated_k.CorrelatedKSW``.  Returns
+    (tau, ssa, g_haze, fbeam, weights) where tau/ssa are (nwave, nlyr) ascending,
+    fbeam[nwave] is the per-band TOA solar flux and weights[nwave] the Gauss
+    weights; the gas is a pure absorber so only ``ssa`` varies between waves.
+    """
+    tau_gas = ck.layer_tau(column, comp)              # (nband, ngauss, nlyr)
+    tau_haze = layer_haze_tau(column, micro, p)       # (nlyr,)
+    nb, ng, nlyr = tau_gas.shape
+    nwave = nb * ng
+    sca_haze = p.ssa_haze_sw * tau_haze               # haze scattering optical depth
+    tau = np.empty((nwave, nlyr))
+    ssa = np.empty((nwave, nlyr))
+    for b in range(nb):
+        for gi in range(ng):
+            w = b * ng + gi
+            tt = tau_haze + tau_gas[b, gi]
+            tau[w] = tt
+            ssa[w] = np.clip(np.where(tt > 0, sca_haze / np.maximum(tt, 1e-300), 0.0),
+                             0.0, 0.999999)
+    fbeam = np.repeat(ck.solar, ng)                   # per-band solar, repeated over g
+    weights = np.tile(ck.gw, nb)                      # Gauss weight per wave
+    return tau, ssa, p.g_haze_sw, fbeam, weights
+
+
 def longwave_optics_spectral(column, micro, cia, p: OpticsParams, comp=None):
     """Per-band longwave (tau, ssa, g) arrays, shape (nband, nlyr), ascending.
 

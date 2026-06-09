@@ -67,6 +67,46 @@ def solve_shortwave(tau, ssa, g, fbeam, umu0, albedo=0.1, nstr=8):
     return _net_down(ds)[::-1].copy()       # back to ascending
 
 
+def solve_shortwave_spectral(tau, ssa, g_haze, fbeam, weights, umu0,
+                             albedo=0.1, nstr=8):
+    """Multi-wave (correlated-k) solar-beam DISORT solve.
+
+    ``tau, ssa`` are (nwave, nlyr) ascending-in-altitude, one wave per
+    (band, Gauss-point); ``fbeam[nwave]`` is the per-band TOA solar flux and
+    ``weights[nwave]`` the Gauss weights.  Scattering is haze-only, so the phase
+    function is a single Henyey-Greenstein with asymmetry ``g_haze`` for every
+    wave (gas is a pure absorber, varying only ``ssa``).  Returns the
+    weight-summed net downward flux at levels (ascending).
+    """
+    tau = np.asarray(tau, float)
+    nwave, nlyr = tau.shape
+    op = DisortOptions().flags("onlyfl,lamber").nwave(nwave).ncol(1)
+    op.ds().nlyr = nlyr
+    op.ds().nstr = nstr
+    op.ds().nmom = nstr
+    op.ds().nphase = nstr
+    ds = Disort(op)
+
+    nprop = 2 + nstr
+    prop = torch.zeros((nwave, 1, nlyr, nprop))
+    prop[:, 0, :, 0] = torch.from_numpy(tau[:, ::-1].copy())
+    prop[:, 0, :, 1] = torch.from_numpy(np.asarray(ssa, float)[:, ::-1].copy())
+    prop[:, 0, :, 2:] = scattering_moments(nstr, "henyey-greenstein", float(g_haze))
+
+    fbeam = np.asarray(fbeam, float).reshape(nwave, 1)
+    ds.forward(prop,
+               umu0=torch.tensor([float(umu0)]),
+               phi0=torch.tensor([0.0]),
+               fbeam=torch.from_numpy(fbeam.copy()),
+               albedo=torch.full((nwave, 1), float(albedo)),
+               fisot=torch.zeros((nwave, 1)))
+    f = ds.gather_flx()[:, 0].numpy()                 # (nwave, nlvl, 8), top-down
+    net_td = (f[:, :, pydisort.kIRFLDIR] + f[:, :, pydisort.kIFLDN]
+              - f[:, :, pydisort.kIFLUP])
+    w = np.asarray(weights, float)[:, None]
+    return (net_td * w).sum(axis=0)[::-1].copy()      # weight-summed, ascending
+
+
 def solve_longwave_spectral(tau, ssa, g, T_levels_ascending, band_lo, band_hi,
                             albedo=0.0, nstr=8):
     """Multi-band thermal DISORT solve with the Planck source.

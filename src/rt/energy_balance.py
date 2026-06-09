@@ -40,25 +40,35 @@ class Fluxes:
 
 def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
                    solar: SolarForcing | None = None, nstr: int = 8,
-                   cia: CIABands | None = None, comp: Composition | None = None) -> Fluxes:
+                   cia: CIABands | None = None, comp: Composition | None = None,
+                   ck=None) -> Fluxes:
     """Run both bands once and return fluxes + heating rates.
 
-    The longwave is spectral, with collision-induced absorption (CIA) as the
-    explicit gas opacity (N2-N2, N2-CH4, CH4-CH4, N2-H2).
+    Longwave: spectral, with collision-induced absorption (N2-N2, N2-CH4,
+    CH4-CH4, N2-H2).  Shortwave: correlated-k CH4 (``ck`` a
+    :class:`rt.correlated_k.CorrelatedKSW`) if provided, else the gray placeholder.
     """
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = cia or CIABands()
 
-    tau_sw, ssa_sw, g_sw = shortwave_optics(column, micro, op)
     tau_lw, ssa_lw, g_lw = longwave_optics_spectral(column, micro, cia, op, comp)
-
-    sw_net = dd.solve_shortwave(tau_sw, ssa_sw, g_sw,
-                                fbeam=solar.fbeam, umu0=solar.umu0,
-                                albedo=solar.albedo, nstr=nstr)
     lw_net = dd.solve_longwave_spectral(tau_lw, ssa_lw, g_lw, column.T,
                                         cia.band_lo, cia.band_hi, albedo=0.0,
                                         nstr=nstr)
+
+    if ck is not None:
+        from .optics import shortwave_optics_ck
+        tau_sw, ssa_sw, g_haze, fbeam, weights = shortwave_optics_ck(
+            column, micro, ck, op, comp)
+        sw_net = dd.solve_shortwave_spectral(tau_sw, ssa_sw, g_haze, fbeam,
+                                             weights, umu0=solar.umu0,
+                                             albedo=solar.albedo, nstr=nstr)
+    else:
+        tau_sw, ssa_sw, g_sw = shortwave_optics(column, micro, op)
+        sw_net = dd.solve_shortwave(tau_sw, ssa_sw, g_sw,
+                                    fbeam=solar.fbeam, umu0=solar.umu0,
+                                    albedo=solar.albedo, nstr=nstr)
 
     # per-layer deposited energy = net-downward-flux convergence (ascending)
     sw_dF = np.diff(sw_net)
@@ -123,7 +133,7 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
                           dt_days: float = 0.02, relax: float = 0.2,
                           gamma_crit: float = 1.0, convective: bool = True,
                           fix_surface: bool = True, tol: float = 0.3,
-                          verbose: bool = False):
+                          use_ck: bool = True, verbose: bool = False):
     """Relax toward radiative-CONVECTIVE equilibrium in layer-mean temperature.
 
     The state is the layer-mean temperature ``T_lyr`` (1:1 with the per-layer net
@@ -141,6 +151,10 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = CIABands()                       # build the CIA table once
+    ck = None
+    if use_ck:
+        from .correlated_k import CorrelatedKSW
+        ck = CorrelatedKSW(sma_au=9.58)        # Titan ~9.58 AU
     T_surf = column.T[0]
     T_lyr = column.T_mid.copy()            # layer-mean temperature is the state
     z_mid, dP = column.z_mid, column.dP
@@ -150,7 +164,7 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     for it in range(n_iter):
         T_lev = _levels_from_layers(column, T_lyr, T_surf)
         col = Column(column.z, T_lev, column.P, column.g)
-        fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia)
+        fx = compute_fluxes(col, micro, op, solar, nstr=nstr, cia=cia, ck=ck)
         # residual on convectively-stable (radiative) layers -- convective layers
         # are set by the adjustment, not by local radiative balance
         if convective:

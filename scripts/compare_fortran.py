@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
 from rt.energy_balance import radiative_equilibrium, compute_fluxes
+from rt.correlated_k import CorrelatedKSW
 
 
 TITAN_DAY = 1.378e6   # s
@@ -68,7 +69,7 @@ def main():
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
     eq, _ = radiative_equilibrium(col, micro)
-    fx = compute_fluxes(eq, micro)
+    fx = compute_fluxes(eq, micro, ck=CorrelatedKSW(sma_au=9.58))
 
     fort = load_fortran(run_dir)
 
