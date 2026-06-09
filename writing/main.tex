@@ -68,10 +68,11 @@ We show the bistability is radiative, not microphysical (the temperature-to-haze
 map is smooth, while the radiative transfer is genuinely multi-valued for a fixed
 haze, confirmed in two independent engines), but \emph{not robust}: a
 polydisperse (bimodal, size-resolved) haze, whose broad aggregate distribution
-sheds mass faster and thins the haze, is monostable at every distribution width
-sampled.  The two equilibria are thus an artifact of the single-size
-idealization---a caution against inferring strong feedbacks from monodisperse
-microphysics.
+sheds mass faster and thins the haze, roughly halves the warm--cool split (to
+$\sim\!8\,\mathrm{K}$, and to $\sim\!3\,\mathrm{K}$ near the nominal operating
+point) and pulls the feedback gain back toward unity.  The wide two-equilibria
+behaviour is thus largely an artifact of the single-size idealization---a caution
+against inferring strong feedbacks from monodisperse microphysics.
 \end{abstract}
 
 \section{Introduction}
@@ -633,23 +634,46 @@ since the haze source sits there.
 \subsection{Result: a bistable haze feedback}
 \label{sec:coupling-result}
 
-The coupled iteration does \emph{not} settle to a single fixed point. It
-oscillates between two states (Fig.~\ref{fig:coupled}): a \emph{warm} branch with
-the stratopause near $183\,\mathrm{K}$ at $8\,\mathrm{Pa}$ (close to the
-prescribed-haze equilibrium) and a \emph{cool} branch near $131$--$135\,\mathrm{K}$
-at $1.3$--$1.7\,\mathrm{Pa}$ (the microphysics-haze state). The branches are
-anti-correlated under naive iteration, and the transition between them is sharp:
-near $T\approx137\,\mathrm{K}$ a $\sim\!1\,\mathrm{K}$ change in the input
-profile flips the equilibrium output by $\sim\!48\,\mathrm{K}$.
+The coupled iteration does \emph{not} settle to a single fixed point: under naive
+under-relaxation it oscillates between a \emph{warm} branch with the stratopause
+near $183\,\mathrm{K}$ at $8\,\mathrm{Pa}$ (close to the prescribed-haze
+equilibrium) and a \emph{cool} branch near $131$--$135\,\mathrm{K}$ at
+$1.3$--$1.7\,\mathrm{Pa}$ (the microphysics-haze state). The two branches are
+anti-correlated under iteration and the transition between them is sharp---near
+$T\approx137\,\mathrm{K}$ a $\sim\!1\,\mathrm{K}$ change in the input profile flips
+the equilibrium output by $\sim\!48\,\mathrm{K}$---the signature of a feedback with
+gain $>1$, not of under-convergence.
+
+To expose the \emph{stable states} the system settles to rather than the loop's
+overshoot, we hold the haze fixed at its transition-state value and relax the
+radiative--convective equilibrium from a warm and a cool initial profile (the
+engine-independent test detailed in \S\ref{sec:coupling-diag}); the outcome
+depends sharply on the microphysics closure (Fig.~\ref{fig:bistable}). With the
+\emph{monodisperse} haze the two starts land on two distinct stable equilibria, a
+warm ($158\,\mathrm{K}$) and a cool ($141\,\mathrm{K}$) stratopause $17\,\mathrm{K}$
+apart (and up to $31\,\mathrm{K}$ apart deeper in the profile); the coupled loop's
+oscillation is the iteration hopping between these two attractors. With the
+\emph{polydisperse} (bimodal) haze of \S\ref{sec:coupling-poly} the same two starts
+settle far closer---a $149$ versus $142\,\mathrm{K}$ stratopause, $\sim\!8\,\mathrm{K}$
+apart---so the bistability is strongly suppressed though, as we show below, not
+entirely removed.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\textwidth]{figs/coupled_feedback.png}
-  \caption{Coupled radiative--microphysical iteration. Left: temperature profile
-    per iteration (dashed: the prescribed-haze, no-feedback baseline). Right: the
-    stratopause temperature does not converge but alternates between a warm
-    ($\sim\!183\,\mathrm{K}$) and a cool ($\sim\!131\,\mathrm{K}$) branch.}
-  \label{fig:coupled}
+  \includegraphics[width=\textwidth]{figs/bistable_states.png}
+  \caption{The stable states of the coupled haze feedback, found by relaxing the
+    radiative--convective equilibrium from a warm (red) and a cool (blue) initial
+    profile at the same fixed (transition-state) haze (dashed: the prescribed-haze
+    baseline). \emph{Left:} the monodisperse haze settles to two well-separated
+    branches---a warm ($158\,\mathrm{K}$) and a cool ($141\,\mathrm{K}$)
+    stratopause, $\Delta T\approx17\,\mathrm{K}$ (up to $31\,\mathrm{K}$ through
+    the profile)---so the system is bistable. \emph{Right:} the polydisperse
+    (bimodal, $\sigma_F=2.0$) haze settles to two branches only
+    $\sim\!8\,\mathrm{K}$ apart, the warm branch having cooled from $158$ to
+    $149\,\mathrm{K}$: the bistability is strongly suppressed but a weak residual
+    multiplicity survives. Both splits are fully converged (stable as the heating
+    residual falls below $0.3\,\mathrm{K\,day^{-1}}$).}
+  \label{fig:bistable}
 \end{figure}
 
 \subsection{Diagnosis: a genuine absorbing-haze radiative bistability}
@@ -668,9 +692,10 @@ warms it further. \emph{Second}, the radiative transfer is genuinely
 multi-valued: holding the haze \emph{fixed} (the transition-state haze) and
 relaxing the radiative--convective equilibrium from a warm versus a cool initial
 state lands on two distinct equilibria, stratopause $158\,\mathrm{K}$ versus
-$141\,\mathrm{K}$ ($\Delta T\approx31\,\mathrm{K}$); the separation is stable as
-the residual falls, so it is real multiplicity rather than under-convergence, and
-it reproduces in the independent DISORT engine.
+$141\,\mathrm{K}$ ($\Delta T\approx17\,\mathrm{K}$ at the stratopause, up to
+$31\,\mathrm{K}$ deeper in the profile; Fig.~\ref{fig:bistable}, left); the
+separation is stable as the residual falls, so it is real multiplicity rather than
+under-convergence, and it reproduces in the independent DISORT engine.
 
 \begin{figure}[t]
   \centering
@@ -694,7 +719,7 @@ of $T=F(\text{haze}(T))$ that tracks one attractor rather than fixed-point
 iteration; the existence of the two branches is itself the principal Step-3
 result.
 
-\subsection{Polydispersity: the bistability does not survive}
+\subsection{Polydispersity strongly suppresses the bistability}
 \label{sec:coupling-poly}
 
 The diagnosis above assumes the monodisperse closure of \S\ref{sec:scaling}: one
@@ -715,17 +740,25 @@ $1.9$ at $\sigma_F=2.0$.  Matching the observed $\tau\!\approx\!8$ requires a
 narrow distribution, $\sigma_F\!\lesssim\!1.2$, so the haze opacity becomes a
 \emph{constraint} on the aggregate size spread.
 
-Second, and decisively, the \emph{bistability does not persist}.  Repeating the
-fixed-haze warm-versus-cool equilibrium test of \S\ref{sec:coupling-diag} with the
-bimodal haze gives a single equilibrium at every width sampled---the warm and cool
-starts converge to within $\sim\!4\,\mathrm{K}$ at both $\sigma_F=1.2$ (the thick,
-nearly-observed haze) and $\sigma_F=2.0$ (Fig.~\ref{fig:sigmaF}, right), versus the
-$\sim\!31\,\mathrm{K}$ split of the monodisperse haze.  The polydisperse haze, even
-at the larger optical depth of the narrow-distribution limit, stays below the
-feedback threshold.  The two-equilibria behaviour is therefore a feature of the
-monodisperse idealization---its over-concentrated opacity at altitude---rather
-than a robust property of Titan's coupled haze, a caution against reading strong
-nonlinear feedbacks out of single-size microphysics.
+Second, and decisively for the feedback, the \emph{bistability is strongly
+suppressed}.  Repeating the fixed-haze warm-versus-cool equilibrium test of
+\S\ref{sec:coupling-diag} with the bimodal haze, the warm branch cools from $158$
+to $149\,\mathrm{K}$ and the two starts settle only $\sim\!8\,\mathrm{K}$ apart at
+the stratopause---half the monodisperse $17\,\mathrm{K}$ (Fig.~\ref{fig:bistable},
+right)---a converged separation, stable as the heating residual falls.  The split
+is essentially independent of $\sigma_F$: even the thick, nearly-observed
+$\sigma_F=1.2$ haze does not restore the wide separation, and when the haze is
+taken at the nominal rather than the transition-state temperature the split falls
+further, to $\sim\!3$--$4\,\mathrm{K}$ across $\sigma_F$ (Fig.~\ref{fig:sigmaF},
+right).  The polydisperse system is therefore at most \emph{weakly} bistable, and
+plausibly single-valued near its operating point.  The wide, robust two-equilibria
+behaviour of the monodisperse model---its over-concentrated opacity at altitude
+driving the feedback gain well above one---is thus largely an artifact of the
+single-size idealization: a realistic size distribution sheds mass faster, thins
+and lifts the haze less, and pulls the gain back toward unity.  This is a caution
+against reading strong nonlinear feedbacks out of monodisperse microphysics, while
+leaving open whether a weak residual multiplicity persists---a question the
+deferred continuation solve of $T=F(\mathrm{haze}(T))$ would settle definitively.
 
 \begin{figure}[t]
   \centering
@@ -734,11 +767,12 @@ nonlinear feedbacks out of single-size microphysics.
     $\sigma_F$.  Left: the visible column optical depth falls steeply with
     $\sigma_F$ (gravitational sorting), reaching the observed $\tau\!\approx\!8$
     only for a narrow distribution $\sigma_F\!\lesssim\!1.2$; the $\tau$-weighted
-    centroid (dashed, right axis) rises as the haze thins.  Right: the warm$-$cool
-    stratopause split (the bistability indicator) stays near $4\,\mathrm{K}$
-    across $\sigma_F$---monostable---versus the $\sim\!31\,\mathrm{K}$ split of the
-    monodisperse haze.  The absorbing-haze bistability is an artifact of the
-    single-size closure, not a robust feature of the coupled system.}
+    centroid (dashed, right axis) rises as the haze thins.  Right: with the haze
+    taken at the nominal temperature the warm$-$cool stratopause split (the
+    bistability indicator) stays near $3$--$4\,\mathrm{K}$ across $\sigma_F$, far
+    below the monodisperse $17\,\mathrm{K}$ (Fig.~\ref{fig:bistable}); a realistic
+    size distribution strongly suppresses the absorbing-haze bistability, leaving
+    at most a weak residual.}
   \label{fig:sigmaF}
 \end{figure}
 
