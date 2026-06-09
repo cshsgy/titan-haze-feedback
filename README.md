@@ -73,6 +73,7 @@ papers/                 source PDFs (reference literature)
 docs/
   physics_parameters.md baseline constants & profiles extracted from the papers
   scaling_law.md        derivation of C(z,N) dz dN = f(z,N,T,d,D)
+  rt_discrepancies.md   ranked differences between our DISORT RT and the Fortran RT
 src/microphysics/       Step 2 scaling-law solver
   constants.py          physical constants + AerosolParams
   atmosphere.py         background T(z), P(z), g(z), eta(T), lambda(T,P), K(z)
