@@ -26,8 +26,7 @@ import matplotlib.pyplot as plt
 
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
-from rt.energy_balance import radiative_equilibrium, compute_fluxes
-from rt.correlated_k import CorrelatedKSW
+from rt.energy_balance import radiative_equilibrium
 
 
 TITAN_DAY = 1.378e6   # s
@@ -76,12 +75,13 @@ def main():
     atm = Atmosphere.titan_reference()
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
-    eq, _ = radiative_equilibrium(col, micro)
-    fx = compute_fluxes(eq, micro, ck=CorrelatedKSW())
+    # use the fluxes the solver converged with (consistent ck + ck_lw); do NOT
+    # recompute here -- that previously dropped ck_lw and mis-plotted the heating
+    eq, _, fx = radiative_equilibrium(col, micro)
 
     print("prescribed-haze run (RT validation) ...")
     op_presc = OpticsParams(prescribed_haze=True)
-    eqp, _ = radiative_equilibrium(col, micro, op=op_presc, n_iter=2500)
+    eqp, _, _ = radiative_equilibrium(col, micro, op=op_presc, n_iter=2500)
 
     fort = load_fortran(run_dir)
 

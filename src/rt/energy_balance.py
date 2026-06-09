@@ -47,7 +47,19 @@ def compute_fluxes(column: Column, micro, op: OpticsParams | None = None,
     Longwave: collision-induced absorption + (if ``ck_lw`` given) correlated-k
     gas lines (CH4/C2H2/C2H6/C2H4/HCN) + IR haze.  Shortwave: correlated-k CH4
     (``ck``) + spectral haze if ``ck`` given, else the gray placeholder.
+
+    ``ck`` and ``ck_lw`` must be passed together (both or neither): the
+    correlated-k shortwave and the gas-line longwave form one energy balance, and
+    ``radiative_equilibrium`` always uses both.  Mixing them (e.g. ck shortwave
+    with CIA-only longwave) silently produces a profile whose net heating is
+    enormous where the model actually converged to ~0 -- the kind of footgun that
+    makes a *converged* run look wildly out of balance when re-plotted.  Refuse it.
     """
+    if (ck is None) != (ck_lw is None):
+        raise ValueError(
+            "compute_fluxes: pass `ck` and `ck_lw` together (both or neither). "
+            "Correlated-k shortwave with CIA-only longwave (or vice versa) is an "
+            "inconsistent energy balance; radiative_equilibrium uses both.")
     op = op or OpticsParams()
     solar = solar or SolarForcing()
     cia = cia or CIABands()
@@ -203,4 +215,10 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
             T_lyr = convective_adjust(T_lyr, z_mid, dP, gamma_crit, T_surf=T_surf)
 
     T_lev = _levels_from_layers(column, T_lyr, T_surf)
-    return Column(column.z, T_lev, column.P, column.g), np.array(history)
+    eq = Column(column.z, T_lev, column.P, column.g)
+    # Return the fluxes the solver ACTUALLY converged with (same ck/ck_lw/op/
+    # solar).  Callers must plot/diagnose with these rather than recomputing --
+    # recomputing with a different optics combination (e.g. forgetting ck_lw)
+    # silently yields a wildly different, un-converged-looking net heating.
+    fx = compute_fluxes(eq, micro, op, solar, nstr=nstr, cia=cia, ck=ck, ck_lw=ck_lw)
+    return eq, np.array(history), fx

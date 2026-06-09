@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from rt.column import Column
 from rt.cia import CIABands
-from rt.correlated_k import CorrelatedKSW
+from rt.correlated_k import CorrelatedKSW, CorrelatedKLW
 from rt.energy_balance import compute_fluxes, radiative_equilibrium, S0_TITAN
 
 
@@ -33,8 +33,10 @@ def main():
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
 
-    ck = CorrelatedKSW()
-    fx0 = compute_fluxes(col, micro, ck=ck)
+    # full correlated-k physics: ck (shortwave) AND ck_lw (gas-line longwave) must
+    # go together -- the same combination radiative_equilibrium converges with.
+    ck, cklw = CorrelatedKSW(), CorrelatedKLW()
+    fx0 = compute_fluxes(col, micro, ck=ck, ck_lw=cklw)
     print(f"Solar constant at Titan: {S0_TITAN:.2f} W/m^2")
     inc = fx0.sw_net[-1]
     print(f"SW: TOA net {fx0.sw_net[-1]:.3f}, surface {fx0.sw_net[0]:.3f} W/m^2 "
@@ -43,10 +45,14 @@ def main():
           f"surface net down {fx0.lw_net[0]:.3f} W/m^2")
 
     print("\nRelaxing to radiative equilibrium ...")
-    eq, hist = radiative_equilibrium(col, micro, verbose=True)
-    print(f"residual {hist[0]:.0f} -> {hist[-50:].mean():.1f} K/Titan-day (bulk)")
-
-    fxe = compute_fluxes(eq, micro, ck=ck)
+    # use the fluxes the solver converged with -- do NOT recompute (that risks a
+    # different, inconsistent optics combination)
+    eq, hist, fxe = radiative_equilibrium(col, micro, verbose=True)
+    import numpy as _np
+    print(f"residual {hist[0]:.0f} -> {hist[-1]:.2f} K/Titan-day "
+          f"(max |net heating| over radiative layers)")
+    print(f"  check: max |net heating| over ALL layers (converged fluxes) = "
+          f"{_np.max(_np.abs(fxe.net_heating)):.2f} K/Titan-day")
 
     # --- figure ---
     fig, ax = plt.subplots(1, 4, figsize=(18, 5.5))
