@@ -1149,12 +1149,14 @@ SUBROUTINE planetary_radiation(is, js, lat, lon, testing_ls, cosz, phalf, pfull,
                                                 end if
                                         end do
 
-                                        ! save last tau_gasv
-                                        !open (unit = 90, file = 'tau_gasv.txt')
-                                        !do dd = 1, 103
-                                        !      write(90, ' (  500(X, E10.3) ) ') tau_gasv(dd, :, :)
-                                        !end do
-                                        !close(90)
+                                        ! save Gauss-weighted (mean) gas optical depth per band per level,
+                                        ! same layout as tau_hazev.txt (row0 = plev, then one row per band)
+                                        open (unit = 90, file = 'tau_gasv.txt', status = 'replace')
+                                            write(90, ' (  500(X, E15.8) ) ') plev
+                                            do dd = 1, size(tau_gasv, 2)
+                                                 write(90, ' (  500(X, E15.8) ) ') matmul(tau_gasv(:, dd, :), ckc_gwtv)
+                                            end do
+                                        close(90)
 
                                 end if
 
@@ -1413,12 +1415,13 @@ SUBROUTINE planetary_radiation(is, js, lat, lon, testing_ls, cosz, phalf, pfull,
                                                 end do
                                         end if
                                 end do
-                                ! save last tau_gasi
-                                !open (unit = 90, file = 'tau_gasi.txt')
-                                !        do dd = 1, 103
-                                !                 write(90, ' (  500(X, E10.3) ) ') tau_gasi(dd, :, :)
-                                !        end do
-                                !close(90)
+                                ! save Gauss-weighted (mean) IR gas-line optical depth per band per level
+                                open (unit = 90, file = 'tau_gasi.txt', status = 'replace')
+                                    write(90, ' (  500(X, E15.8) ) ') plev
+                                    do dd = 1, size(tau_gasi, 2)
+                                             write(90, ' (  500(X, E15.8) ) ') matmul(tau_gasi(:, dd, :), ckc_gwti)
+                                    end do
+                                close(90)
                         end if
 !-----------------------------------------------------------------------------------------
 ! Get IR optical depths from CIA pairs
