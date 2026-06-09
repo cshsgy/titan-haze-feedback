@@ -168,7 +168,7 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       ~200 K stratopause, matching the reference Fortran (`example_bowen_fort`, ~195 K).
       The RDG cross-section corrected the haze optical-depth magnitude (visible column
       τ ~8, matching Doose, vs ~70 with the old gray mobility-radius cross-section) and
-      warmed the coupled stratopause ~115→150 K. The residual ~50 K gap is the haze
+      warmed the coupled stratopause ~115→140 K. The residual ~50 K gap is the haze
       **vertical distribution** (set by the Step 2 production/settling, ρ_h ∝ 1/ω),
       not the radiation. Haze model selectable via `OpticsParams.haze_mode`
       ('rdg' default / 'gray' / 'prescribed').

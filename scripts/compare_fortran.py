@@ -85,7 +85,7 @@ def main():
     # validation: same haze the Fortran uses)
     atm = Atmosphere.titan_reference()
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
-    col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
+    col = Column.from_atmosphere(atm, nlyr=100, p_top=1.0)
     # use the fluxes the solver converged with (consistent ck + ck_lw); do NOT
     # recompute here -- that previously dropped ck_lw and mis-plotted the heating
     eq, _, fx = radiative_equilibrium(col, micro)

@@ -30,11 +30,19 @@ class Column:
         self.nlyr = self.nlvl - 1
 
     @classmethod
-    def from_atmosphere(cls, atm, nlyr: int = 50, z_top: float = 500e3):
-        """Build a column on a pressure-spaced grid from an Atmosphere."""
-        # levels equally spaced in log-pressure from surface to z_top
+    def from_atmosphere(cls, atm, nlyr: int = 50, z_top: float = 500e3,
+                        p_top: float | None = None):
+        """Build a column on a log-pressure-spaced grid from an Atmosphere.
+
+        Levels are equally spaced in log-pressure from the surface to the model
+        top.  The top is set by ``p_top`` [Pa] if given (e.g. to match a reference
+        model's pressure-coordinate top), else by ``atm.pressure(z_top)``.  This
+        log-pressure construction mirrors the reference Fortran grid
+        (``phalf = p_top * exp(i * dlnp)``), so passing the same ``nlyr`` and
+        ``p_top`` reproduces its vertical resolution.
+        """
         P_surf = float(atm.pressure(0.0))
-        P_top = float(atm.pressure(z_top))
+        P_top = float(p_top) if p_top is not None else float(atm.pressure(z_top))
         P_lev = np.logspace(np.log10(P_surf), np.log10(P_top), nlyr + 1)
         # invert P(z) by interpolation on the atmosphere grid
         z_grid = atm.z

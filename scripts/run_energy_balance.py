@@ -31,7 +31,7 @@ from rt.energy_balance import compute_fluxes, radiative_equilibrium, S0_TITAN
 def main():
     atm = Atmosphere.titan_reference()
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
-    col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
+    col = Column.from_atmosphere(atm, nlyr=100, p_top=1.0)
 
     # full correlated-k physics: ck (shortwave) AND ck_lw (gas-line longwave) must
     # go together -- the same combination radiative_equilibrium converges with.
