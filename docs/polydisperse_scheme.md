@@ -114,6 +114,28 @@ settling-only deposition at the surface.
 4. Polydisperse optics (extend `aggregate_optics.py` / `optics.py`).
 5. Cross-validate (extinction scale height, sizes, S/F mass split) + re-run Step 3.
 
+## Results (pieces 4-5; `scripts/polydisperse_compare.py`, `writing/figs/polydisperse_compare.png`)
+
+At `sigma_S=1.5, sigma_F=2.0` (K->0 profiles):
+
+- **Optics.** The bimodal haze is **~4.4x optically thinner** than monodisperse
+  (visible column tau **1.9 vs 8.4**) and sits **higher** (centroid 128 vs 107 km).
+  Cause: the broad aggregate distribution settles its mass ~5x faster --
+  `<w>_3 ~ alpha(4.5) ~ 5x` the single-size speed (gravitational sorting). This is
+  a first-order, sigma_F-dependent control on haze opacity the monodisperse model
+  cannot represent; tau~2 is below the observed ~8, suggesting Titan's aggregate
+  distribution is narrower than sigma_g=2.0 (or production is higher) -- a testable
+  inference. **=> the sigma_F sweep is the key follow-up.**
+- **Temperature.** The DISORT stratopause is **insensitive** to the 4.4x tau
+  difference: ~142 K for both hazes (the lower stratosphere differs, the
+  stratopause does not).
+- **Bistability RESOLVED.** With the polydisperse haze the radiative-convective
+  equilibrium is **monostable** (warm vs cool start: 142 vs 139 K, ~3 K), versus
+  the ~31 K split with the monodisperse haze. The absorbing-haze bistability was
+  tied to the monodisperse model's overestimate of the haze opacity at altitude;
+  the realistic (thinner) polydisperse haze falls below the feedback threshold.
+  This is sigma_F-dependent (a thicker haze at smaller sigma_F may restore it).
+
 ## Open parameters (need values)
 
 - $\sigma_S,\sigma_F$: fixed geometric widths (Rannou et al. 2004 / Cours et al.
