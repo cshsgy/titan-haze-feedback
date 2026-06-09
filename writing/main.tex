@@ -64,9 +64,14 @@ The strongly-absorbing haze is smoothly mobile in altitude with temperature
 aloft), and this positive feedback gives the radiative--convective system two
 stable equilibria---a warm ($\sim\!183\,\mathrm{K}$) and a cool
 ($\sim\!131\,\mathrm{K}$) stratopause---between which naive iteration oscillates.
-We show the bistability is radiative, not microphysical: the temperature-to-haze
+We show the bistability is radiative, not microphysical (the temperature-to-haze
 map is smooth, while the radiative transfer is genuinely multi-valued for a fixed
-haze (confirmed in two independent engines).
+haze, confirmed in two independent engines), but \emph{not robust}: a
+polydisperse (bimodal, size-resolved) haze, whose broad aggregate distribution
+sheds mass faster and thins the haze, is monostable at every distribution width
+sampled.  The two equilibria are thus an artifact of the single-size
+idealization---a caution against inferring strong feedbacks from monodisperse
+microphysics.
 \end{abstract}
 
 \section{Introduction}
@@ -688,6 +693,54 @@ feedback gain along it) therefore requires a continuation or damped-Newton solve
 of $T=F(\text{haze}(T))$ that tracks one attractor rather than fixed-point
 iteration; the existence of the two branches is itself the principal Step-3
 result.
+
+\subsection{Polydispersity: the bistability does not survive}
+\label{sec:coupling-poly}
+
+The diagnosis above assumes the monodisperse closure of \S\ref{sec:scaling}: one
+size $\bar N(z)$ per level.  Because the bistability is an opacity-driven feedback,
+it is worth asking whether a realistic \emph{size distribution} changes the
+picture.  We replaced the closure with a bimodal two-moment log-normal scheme (a
+spherical-monomer mode and a fractal-aggregate mode, each carried by its number
+and volume moments, with Brownian coagulation, an inter-mode coalescence
+transfer, and size-dependent settling), following \citet{Burgalat2017}.  Two
+effects appear that the single-size model cannot represent.  First, \emph{
+gravitational sorting}: the moment-averaged settling velocities differ,
+$\langle\omega\rangle_3>\langle\omega\rangle_0$, so the broad aggregate
+distribution sheds its mass faster than a single particle of the mean size and
+less haze accumulates aloft.  The visible column optical depth then falls steeply
+with the geometric width $\sigma_F$ (Fig.~\ref{fig:sigmaF}, left): from
+$\tau\!\approx\!8.4$ in the monodisperse limit to $6.2$ at $\sigma_F=1.2$ and
+$1.9$ at $\sigma_F=2.0$.  Matching the observed $\tau\!\approx\!8$ requires a
+narrow distribution, $\sigma_F\!\lesssim\!1.2$, so the haze opacity becomes a
+\emph{constraint} on the aggregate size spread.
+
+Second, and decisively, the \emph{bistability does not persist}.  Repeating the
+fixed-haze warm-versus-cool equilibrium test of \S\ref{sec:coupling-diag} with the
+bimodal haze gives a single equilibrium at every width sampled---the warm and cool
+starts converge to within $\sim\!4\,\mathrm{K}$ at both $\sigma_F=1.2$ (the thick,
+nearly-observed haze) and $\sigma_F=2.0$ (Fig.~\ref{fig:sigmaF}, right), versus the
+$\sim\!31\,\mathrm{K}$ split of the monodisperse haze.  The polydisperse haze, even
+at the larger optical depth of the narrow-distribution limit, stays below the
+feedback threshold.  The two-equilibria behaviour is therefore a feature of the
+monodisperse idealization---its over-concentrated opacity at altitude---rather
+than a robust property of Titan's coupled haze, a caution against reading strong
+nonlinear feedbacks out of single-size microphysics.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/sigma_f_sweep.png}
+  \caption{Bimodal (polydisperse) haze versus the aggregate geometric width
+    $\sigma_F$.  Left: the visible column optical depth falls steeply with
+    $\sigma_F$ (gravitational sorting), reaching the observed $\tau\!\approx\!8$
+    only for a narrow distribution $\sigma_F\!\lesssim\!1.2$; the $\tau$-weighted
+    centroid (dashed, right axis) rises as the haze thins.  Right: the warm$-$cool
+    stratopause split (the bistability indicator) stays near $4\,\mathrm{K}$
+    across $\sigma_F$---monostable---versus the $\sim\!31\,\mathrm{K}$ split of the
+    monodisperse haze.  The absorbing-haze bistability is an artifact of the
+    single-size closure, not a robust feature of the coupled system.}
+  \label{fig:sigmaF}
+\end{figure}
 
 \section{Photochemistry in the loop (Step 4)}
 \label{sec:photochem}

@@ -69,7 +69,7 @@ def main():
             above = z > z[int(np.argmin(T))]
             Tn = T.copy(); Tn[above] = Tc + scale * (T[above] - Tc)
             a2 = Atmosphere.from_profile(z, Tn, P_surf=atm.P_surf)
-            c = Column.from_atmosphere(a2, nlyr=100, p_top=1.0)
+            c = Column.from_atmosphere(a2, nlyr=70, p_top=1.0)
             e, h, _ = radiative_equilibrium(c, mic, op=op, n_iter=2000)
             return e.T.max()
         Tw, Tcl = eq(1.35), eq(0.60)
