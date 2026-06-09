@@ -203,5 +203,10 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       the radiation.)
 - [x] Step 2 — scaling-law implementation (`src/microphysics/`): K→0 master ODE
       **and** full eddy-diffusion BVP, cross-validated against Tomasko/dT25
-- [ ] Step 3 — coupled iteration
+- [ ] Step 3 — coupled iteration. **Scoped** in
+      [`docs/step3_coupling.md`](docs/step3_coupling.md): a Python loop regenerates
+      the Fortran's prescribed-haze files (`coupledhaze*.txt`) from the Step 2
+      microphysics each iteration and re-runs the engine — **no Fortran source
+      changes** (uses the existing `haze_data='presc'` path). Main blocker: the
+      reference's unconverged top (P ≲ 4 Pa) coincides with the haze source.
 - [ ] Step 4 — photochemistry coupling
