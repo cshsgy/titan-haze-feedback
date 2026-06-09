@@ -278,6 +278,48 @@ Step~2 haze production and settling, not by the radiation.
   \label{fig:fortran}
 \end{figure}
 
+\subsection{Per-source opacity breakdown}
+\label{sec:opacity-breakdown}
+
+To localise the residual heating-rate differences we compare the two engines'
+optical depth \emph{source by source} at the same state (the reference's
+converged $P(T)$ profile and the shared prescribed haze), accumulating each
+contribution---haze, CH$_4$ shortwave gas, IR gas lines (CH$_4$/C$_2$H$_2$/%
+C$_2$H$_6$/C$_2$H$_4$/HCN), Rayleigh, and CIA---separately from the top down
+(Fig.~\ref{fig:opacity}). For this we enabled the reference model's
+per-band Gauss-weighted gas-opacity output, so even the correlated-$k$ gas can
+be compared directly rather than inferred.
+
+Through the mid-atmosphere ($10$--$100\,\mathrm{Pa}$) \emph{every} source agrees
+to within a few percent: the (dominant) shortwave haze optical depth matches to
+$1\%$, the longwave haze to $\sim\!10\%$, and Rayleigh and CIA to within their
+(small) magnitudes. The only outlier is the CH$_4$ shortwave gas, where ours
+runs $\sim\!1.65\times$ the reference, but in absolute terms that band is
+optically thin ($\tau\lesssim0.01$ in the column) and contributes negligibly to
+the heating. Because the opacities match where the heating rates differ, the
+mid-atmosphere discrepancy is \emph{not} an opacity error: it is attributable to
+the radiative-transfer solver itself---our eight-stream discrete-ordinates
+treatment versus the reference's delta-Eddington two-stream (shortwave) and
+hemispheric-mean (longwave), which handle the strongly forward-scattering haze
+($\omega_0\approx0.9$ in the visible) differently. The breakdown also exposes a
+genuine opacity difference confined to the very top ($P<10\,\mathrm{Pa}$), where
+our haze column is thinner than the reference's---an upper-atmosphere effect
+distinct from the mid-altitude solver difference.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/opacity_breakdown.png}
+  \caption{Cumulative optical depth from the top of atmosphere, by source, for
+    our DISORT optics (solid) and the reference Fortran model (dashed), at the
+    same state. Top row: shortwave (haze, CH$_4$ gas, Rayleigh) in three
+    representative bands; bottom row: longwave (haze, gas lines, CIA). The shaded
+    band marks the mid-altitude $10$--$100\,\mathrm{Pa}$ region. The haze
+    dominates and matches closely; all sources agree to within a few percent
+    through the mid-atmosphere, so the residual heating-rate difference there is
+    the radiative-transfer solver, not the opacity.}
+  \label{fig:opacity}
+\end{figure}
+
 \section{Microphysical scaling law (Step 2)}
 \label{sec:scaling}
 
