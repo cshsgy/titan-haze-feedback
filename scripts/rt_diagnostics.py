@@ -65,7 +65,7 @@ def main():
     op = OpticsParams(prescribed_haze=True)          # same haze the Fortran uses
     # match the Fortran namelist exactly: sma = 9.5 AU and the diurnally-averaged
     # insolation cosine at lat=0, Ls=0 (declination=0) -> cosz = 1/pi
-    ck = CorrelatedKSW(sma_au=9.5)
+    ck = CorrelatedKSW()
     cklw = CorrelatedKLW()
     solar = eb.SolarForcing(umu0=1.0 / np.pi)
     fx = eb.compute_fluxes(col, micro, op=op, solar=solar, ck=ck, ck_lw=cklw)

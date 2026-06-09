@@ -70,7 +70,7 @@ def test_correlated_k_ch4_shortwave():
     from rt.optics import shortwave_optics_ck, OpticsParams
     from rt.cia import Composition
     import rt.disort_driver as dd
-    ck = CorrelatedKSW(sma_au=9.58)
+    ck = CorrelatedKSW()
     assert ck.nband == 42 and ck.ngauss == 10
     assert abs(ck.gw.sum() - 1.0) < 1e-3
     assert 12.0 < ck.solar.sum() < 18.0          # Titan TOA solar ~15 W/m^2
@@ -106,7 +106,7 @@ def test_prescribed_haze_path():
     from rt.optics import shortwave_optics_ck, OpticsParams, prescribed_haze_layer_tau
     from rt.correlated_k import CorrelatedKSW
     _, micro, col = _setup()
-    ck = CorrelatedKSW(sma_au=9.58)
+    ck = CorrelatedKSW()
     hp = prescribed_haze_layer_tau(col, ck.bands, kind="v")
     assert hp.shape[0] == ck.nband and np.all(hp >= 0)
     # prescribed visible column optical depth is order-unity-to-ten (observational)
@@ -127,7 +127,7 @@ def test_rdg_aggregate_optics():
     from rt.correlated_k import CorrelatedKSW
     from rt.aggregate_optics import band_lambda_um, monomer_cabs
     _, micro, col = _setup()
-    ck = CorrelatedKSW(sma_au=9.58)
+    ck = CorrelatedKSW()
     om, _ = spectral_haze_sw(tuple(np.round(ck.bands, 3)))
     # monomer absorption is strongly wavelength dependent (UV >> near-IR)
     lam = band_lambda_um(ck.bands)
@@ -147,7 +147,7 @@ def test_spectral_haze_sw():
     strongly in the UV (omega0 -> 0), unlike a gray albedo."""
     from rt.correlated_k import CorrelatedKSW
     from rt.optics import spectral_haze_sw
-    ck = CorrelatedKSW(sma_au=9.58)
+    ck = CorrelatedKSW()
     omega0, g = spectral_haze_sw(tuple(np.round(ck.bands, 3)))
     assert omega0.size == ck.nband and g.size == ck.nband
     assert 0.0 <= omega0.min() < 0.5          # absorbing UV/red bands

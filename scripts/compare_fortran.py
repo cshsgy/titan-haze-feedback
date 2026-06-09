@@ -71,7 +71,7 @@ def main():
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
     eq, _ = radiative_equilibrium(col, micro)
-    fx = compute_fluxes(eq, micro, ck=CorrelatedKSW(sma_au=9.58))
+    fx = compute_fluxes(eq, micro, ck=CorrelatedKSW())
 
     print("prescribed-haze run (RT validation) ...")
     op_presc = OpticsParams(prescribed_haze=True)

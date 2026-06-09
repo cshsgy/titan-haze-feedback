@@ -16,14 +16,14 @@ from .optics import OpticsParams, shortwave_optics, longwave_optics_spectral
 from .cia import CIABands, Composition
 from . import disort_driver as dd
 
-# Solar constant at Titan (~9.58 AU): 1361 / 9.58^2 W/m^2
-S0_TITAN = 1361.0 / 9.58**2          # ~14.8 W/m^2
+# Solar constant at Titan (~9.5 AU, reference-model value): 1361 / 9.5^2 W/m^2
+S0_TITAN = 1361.0 / 9.5**2           # ~15.1 W/m^2
 
 
 @dataclass
 class SolarForcing:
     fbeam: float = S0_TITAN          # beam flux on a surface normal to the beam
-    umu0: float = 0.35               # cos(solar zenith); ~ Huygens-site average
+    umu0: float = 1.0 / np.pi        # diurnally-averaged cos(zenith) at lat=0, Ls=0
     albedo: float = 0.1              # surface albedo
 
 
@@ -168,7 +168,7 @@ def radiative_equilibrium(column: Column, micro, op: OpticsParams | None = None,
     ck = ck_lw = None
     if use_ck:
         from .correlated_k import CorrelatedKSW, CorrelatedKLW
-        ck = CorrelatedKSW(sma_au=9.58)        # Titan ~9.58 AU
+        ck = CorrelatedKSW()                   # Titan orbit (default sma=9.5 AU)
         ck_lw = CorrelatedKLW()                # IR gas lines (C2H2/HCN/C2H6/...)
     T_surf = column.T[0]
     T_lyr = column.T_mid.copy()            # layer-mean temperature is the state

@@ -78,7 +78,7 @@ def solar_per_band(path=_SOLAR, bwnv=BWNV):
 class CorrelatedKSW:
     """Correlated-k CH4 shortwave optical depths + per-band solar flux."""
 
-    def __init__(self, sma_au: float = 9.58, ckc=_CKC, solar=_SOLAR):
+    def __init__(self, sma_au: float = 9.5, ckc=_CKC, solar=_SOLAR):
         d = parse_ckc(ckc)
         self.bands = d["bands"]
         self.gw = d["gw"]

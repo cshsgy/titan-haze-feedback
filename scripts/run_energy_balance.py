@@ -33,7 +33,7 @@ def main():
     micro = solve_bvp_profile(atm, DEFAULT, n_nodes=200)
     col = Column.from_atmosphere(atm, nlyr=40, z_top=430e3)
 
-    ck = CorrelatedKSW(sma_au=9.58)
+    ck = CorrelatedKSW()
     fx0 = compute_fluxes(col, micro, ck=ck)
     print(f"Solar constant at Titan: {S0_TITAN:.2f} W/m^2")
     inc = fx0.sw_net[-1]
