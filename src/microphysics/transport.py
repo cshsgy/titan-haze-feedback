@@ -48,6 +48,20 @@ def settling_velocity(N, z, atm, p):
     return pref * (stokes + slip)
 
 
+def charge_factor(r_ai, r_aj, T, n_e):
+    """Coulomb coagulation-inhibition factor W = exp(-E_c / k_B T) (BR17 Eq. 27).
+
+    Like-sign embedded charge q_i = n_e r_a_i [e-, r_a in um] gives a contact
+    Coulomb barrier E_c = k_e q_i q_j e^2 / (r_a_i + r_a_j); thermal pairs cross
+    it with Boltzmann probability.  W -> 1 for n_e = 0 or small particles; for
+    Titan's n_e = 15 e-/um it effectively freezes coagulation of aggregates
+    beyond a few tenths of a micron (W ~ 0.3 at r_a = 0.1 um, ~3e-3 at 0.5 um).
+    """
+    qq = (n_e * 1e6) ** 2 * np.asarray(r_ai) * np.asarray(r_aj)     # q_i q_j [e^2]
+    E_c = C.K_COULOMB * qq * C.E_CHARGE**2 / (np.asarray(r_ai) + np.asarray(r_aj))
+    return np.exp(-E_c / (C.K_B * T))
+
+
 def coag_kernel(N, z, atm, p):
     """Equal-size Brownian coagulation kernel beta(N, N; z) [m^3/s].
 
@@ -58,7 +72,8 @@ def coag_kernel(N, z, atm, p):
       beta_FM = 4 sqrt(2) (6 k_B T / rho_p)^{1/2} r_a^2 r^{-3/2}
       beta    = beta_CO beta_FM / (beta_CO + beta_FM)
 
-    The optional charge-inhibition factor (BR17 Eq. 27) is deferred.
+    With ``p.use_charge`` the Coulomb inhibition (BR17 Eq. 27) multiplies the
+    kernel.
     """
     N = np.asarray(N, dtype=float)
     T = atm.temperature(z)
@@ -71,4 +86,7 @@ def coag_kernel(N, z, atm, p):
 
     beta_co = (8.0 * C.K_B * T / (3.0 * eta)) * (1.0 + p.A_slip * Kn)
     beta_fm = 4.0 * np.sqrt(2.0) * np.sqrt(6.0 * C.K_B * T / p.rho_p) * r_a**2 * r ** (-1.5)
-    return beta_co * beta_fm / (beta_co + beta_fm)
+    beta = beta_co * beta_fm / (beta_co + beta_fm)
+    if getattr(p, "use_charge", False):
+        beta = beta * charge_factor(r_a, r_a, T, p.n_e)
+    return beta

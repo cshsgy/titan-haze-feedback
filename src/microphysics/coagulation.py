@@ -39,14 +39,19 @@ def _apparent(r, Df, r_m):
     return r_m ** ((Df - 3.0) / Df) * r ** (3.0 / Df)
 
 
-def _beta(ri, rai, rj, raj, T, eta, lam, rho_p, A):
+def _beta(ri, rai, rj, raj, T, eta, lam, rho_p, A, n_e=0.0):
     """Fuchs kernel on a (...,nq,nq) grid (ri,rai end in (...,nq,1); rj,raj in
-    (...,1,nq); T,eta,lam in (...,1,1))."""
+    (...,1,nq); T,eta,lam in (...,1,1)).  ``n_e > 0`` applies the Coulomb
+    coagulation inhibition (BR17 Eq. 27; see transport.charge_factor)."""
     Di = C.K_B * T / (6.0 * _PI * eta * rai) * (1.0 + A * lam / rai)
     Dj = C.K_B * T / (6.0 * _PI * eta * raj) * (1.0 + A * lam / raj)
     beta_co = 4.0 * _PI * (rai + raj) * (Di + Dj)
     beta_fm = np.sqrt(6.0 * C.K_B * T / rho_p) * (rai + raj) ** 2 * np.sqrt(ri ** -3 + rj ** -3)
-    return beta_co * beta_fm / (beta_co + beta_fm)
+    beta = beta_co * beta_fm / (beta_co + beta_fm)
+    if n_e > 0.0:
+        from .transport import charge_factor
+        beta = beta * charge_factor(rai, raj, T, n_e)
+    return beta
 
 
 def coag_tendencies(M0S, M3S, M0F, M3F, z, atm, p, sigma_s, sigma_f, n=20):
@@ -59,6 +64,7 @@ def coag_tendencies(M0S, M3S, M0F, M3F, z, atm, p, sigma_s, sigma_f, n=20):
     eta = np.atleast_1d(atm.viscosity(z))[..., None, None]
     lam = np.atleast_1d(atm.mfp(z))[..., None, None]
     rho, A, r_m, Df = p.rho_p, p.A_slip, p.d_mono, p.D_f
+    n_e = p.n_e if getattr(p, "use_charge", False) else 0.0
     xi, gw = np.polynomial.hermite.hermgauss(n)
 
     dM0S = np.zeros_like(z); dM3S = np.zeros_like(z)
@@ -67,7 +73,8 @@ def coag_tendencies(M0S, M3S, M0F, M3F, z, atm, p, sigma_s, sigma_f, n=20):
     def pair(rA, wA, DfA, rB, wB, DfB):
         raA = _apparent(rA, DfA, r_m); raB = _apparent(rB, DfB, r_m)
         ri = rA[..., :, None]; rj = rB[..., None, :]
-        b = _beta(ri, raA[..., :, None], rj, raB[..., None, :], T, eta, lam, rho, A)
+        b = _beta(ri, raA[..., :, None], rj, raB[..., None, :], T, eta, lam, rho, A,
+                  n_e=n_e)
         ww = wA[..., :, None] * wB[..., None, :]
         vol = ri ** 3 + rj ** 3
         return ri, rj, b, ww, vol

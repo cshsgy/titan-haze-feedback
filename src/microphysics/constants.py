@@ -14,6 +14,8 @@ import math
 K_B = 1.380649e-23          # Boltzmann constant [J/K]
 N_A = 6.02214076e23         # Avogadro [1/mol]
 R_GAS = 8.314462618         # molar gas constant [J/mol/K]
+E_CHARGE = 1.602176634e-19  # elementary charge [C]
+K_COULOMB = 8.9875517923e9  # Coulomb constant 1/(4 pi eps0) [N m^2/C^2]
 
 # --- Titan body ---
 G_SURF = 1.352              # surface gravity [m/s^2]
@@ -35,7 +37,11 @@ class AerosolParams:
     Q_mass: float = 2.1e-13     # mass production rate Q_p [kg/m^2/s]
     z0: float = 415e3           # production altitude [m]
     dz: float = 20e3            # production Gaussian width [m]
-    n_e: float = 15.0           # charge density [e- / um] (charge factor deferred)
+    n_e: float = 15.0           # charge density [e- / um] (dT25)
+    use_charge: bool = False    # apply the Coulomb coagulation inhibition
+                                # (off by default: the validated baselines --
+                                # H=64 km, column tau~8 -- were calibrated
+                                # without it; flip after re-validating)
     A_slip: float = 1.591       # first-order Cunningham slip constant
 
     @property

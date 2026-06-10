@@ -162,3 +162,17 @@ At `sigma_S=1.5, sigma_F=2.0` (K->0 profiles):
 - $Q_0$ vs the existing $Q_{\rm prod}$: reconcile units (B&R use
   $\mathrm{kg\,m^{-3}\,s^{-1}}$ volumetric; ours is a column rate).
 - $r_C$ (production radius) vs the existing seed $r_p$.
+
+## Charge inhibition (implemented, default OFF)
+
+`use_charge=True` applies the Coulomb factor W = exp(-E_c/kT), E_c = k_e q_i q_j
+e^2/(r_ai+r_aj), q = n_e r_a (n_e = 15 e-/um, dT25) to both kernels
+(`transport.charge_factor`, mono `coag_kernel`, bimodal `_beta`).  Measured
+(`scripts/charge_effect.py`, obs-LW): coagulation freezes for r_a >~ 0.3 um, so
+Nbar @100 Pa drops 30,000 -> 308 and, with dT25's production rate FIXED, the
+slower-settling haze accumulates to column tau 114 (mono+q) / 46 (bi1.2+q) vs
+observed 8.6 -- while the stratopause moves <1.5 K (the upper-haze tau that sets
+it barely changes).  Neither limit matches the observed Nbar~3e3: uncharged
+grows 10x too large, charged stays 10x too small.  Charge is real physics but
+must be co-tuned with production/sticking (a Step-2 recalibration), so the
+default remains off and the validated baselines stand.

@@ -81,10 +81,41 @@ def test_monodisperse_limit():
         np.isclose(d[2], ref, rtol=2e-3), f"{d[2]:.4e} vs {ref:.4e}")
 
 
+def test_charge_factor():
+    """Coulomb inhibition: W=1 at n_e=0, decreases with size, ~0.3 at 0.1 um."""
+    W0 = tr.charge_factor(1e-7, 1e-7, 160.0, 0.0)
+    W1 = tr.charge_factor(1e-7, 1e-7, 160.0, 15.0)
+    W5 = tr.charge_factor(5e-7, 5e-7, 160.0, 15.0)
+    chk("charge factor unity at n_e=0", np.isclose(W0, 1.0))
+    chk("charge factor ~0.3 at r_a=0.1 um", 0.2 < W1 < 0.45, f"{W1:.3f}")
+    chk("charge factor decreases with size", W5 < 0.01 * W1, f"{W5:.2e} vs {W1:.3f}")
+
+
+def test_charge_inhibits_both_kernels():
+    """use_charge slows mono kernel and bimodal tendencies; volume conserved."""
+    from dataclasses import replace
+    atm = Atmosphere.titan_reference()
+    pc = replace(DEFAULT, use_charge=True)
+    z = 150e3
+    b0 = tr.coag_kernel(5e3, z, atm, DEFAULT)
+    b1 = tr.coag_kernel(5e3, z, atm, pc)
+    chk("mono kernel reduced by charge", b1 < 0.1 * b0, f"{b1:.3e} vs {b0:.3e}")
+    s = _state()
+    d0 = cg.coag_tendencies(*s, z, atm, DEFAULT, 1.5, 2.0)
+    d1 = cg.coag_tendencies(*s, z, atm, pc, 1.5, 2.0)
+    chk("bimodal number loss reduced by charge", abs(d1[2]) < abs(d0[2]),
+        f"{d1[2]:.3e} vs {d0[2]:.3e}")
+    chk("bimodal volume conserved with charge",
+        abs(d1[1] + d1[3]) <= 1e-10 * max(abs(d1[1]), abs(d1[3]), 1e-300),
+        f"{d1[1]:.3e}+{d1[3]:.3e}")
+
+
 if __name__ == "__main__":
     test_volume_conservation()
     test_number_decreases()
     test_SS_transfer_feeds_F()
     test_monodisperse_limit()
+    test_charge_factor()
+    test_charge_inhibits_both_kernels()
     print(f"\n{_P}/{_P + _F} passed")
     sys.exit(1 if _F else 0)
