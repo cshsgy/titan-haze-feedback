@@ -185,7 +185,9 @@ def test_haze_raises_shortwave_albedo():
 def test_equilibrium_reduces_residual():
     """Relaxation should cut the bulk net-heating residual substantially."""
     _, micro, col = _setup()
-    eq, hist, fx = radiative_equilibrium(col, micro, n_iter=200)
+    # 400: with the obs-calibrated LW haze (less IR cooling) the equilibrium is
+    # warmer, so the initial profile starts further from it
+    eq, hist, fx = radiative_equilibrium(col, micro, n_iter=400)
     assert hist[-50:].mean() < 0.25 * hist[0], (hist[0], hist[-50:].mean())
     # the returned fluxes are the ones it converged with -> small net heating
     assert np.max(np.abs(fx.net_heating)) < hist[0]

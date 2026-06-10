@@ -71,6 +71,40 @@ def _parse_preschaze_i(field: str):
     return wn, pl, data
 
 
+_CHI_VIS_REF = 20000.0   # cm^-1 visible reference for the LW/vis absorptivity ratio
+
+
+@lru_cache(maxsize=1)
+def _obs_lw_chi_table():
+    """Observational haze LW absorptivity per unit visible extinction.
+
+    chi(wn, P) = dtau_LW(wn) / dtau_vis(20000 cm^-1), layer-wise from the
+    observational preschaze tables.  A composition property of the haze
+    material (CIRS-constrained), nearly P-independent below ~300 Pa and varying
+    smoothly (~3x) above.  Returns (wn[nw], pl_mid[npl-1], chi[npl-1, nw]).
+    """
+    wn_v, pl_v, tau_v = _parse_preschaze("tau")
+    wn_i, _, tau_i = _parse_preschaze_i("tau")     # pl grid shared with the v band
+    o = np.argsort(pl_v)
+    jv = int(np.argmin(np.abs(wn_v - _CHI_VIS_REF)))
+    dv = np.diff(tau_v[o, jv])                              # (npl-1,)
+    di = np.diff(tau_i[o], axis=0)                          # (npl-1, nw)
+    chi = di / np.maximum(dv, 1e-15)[:, None]
+    pl_mid = 0.5 * (pl_v[o][1:] + pl_v[o][:-1])
+    return wn_i, pl_mid, np.maximum(chi, 0.0)
+
+
+def obs_lw_chi(band_centers_cm, P_mid):
+    """chi interpolated to LW band centres and layer mid pressures -> (nband, nlyr)."""
+    wn, pl_mid, chi = _obs_lw_chi_table()
+    bc = np.asarray(band_centers_cm, float)
+    cw = np.vstack([np.interp(bc, wn, chi[ip]) for ip in range(pl_mid.size)]).T
+    lp = np.log(np.asarray(P_mid, float))
+    lpm = np.log(pl_mid)
+    o = np.argsort(lpm)
+    return np.vstack([np.interp(lp, lpm[o], cw[b][o]) for b in range(bc.size)])
+
+
 @lru_cache(maxsize=4)
 def _rayleigh_table():
     d = np.loadtxt(_DATA / "Rayleigh.txt", skiprows=2)
@@ -129,6 +163,15 @@ class OpticsParams:
     # absorption to the observed haze opacity (Titan tholins absorb more than
     # the Khare lab values); 3.0 -> visible column tau ~ Doose's ~8
     haze_abs_scale: float = 3.0
+    # longwave haze opacity model for the microphysics (rdg) haze:
+    #  'obs'   -- spectral absorptivity per unit visible extinction chi(wn, P)
+    #             taken from the observational preschaze tables (a composition
+    #             property, same philosophy as the observational omega0/g in the
+    #             SW).  Khare lab tholin over-absorbs the 200-900 cm^-1 thermal
+    #             window by 20-90x vs the CIRS-constrained Titan haze, which
+    #             over-cools the stratopause by ~40 K.
+    #  'khare' -- previous behaviour: RDG monomer C_abs with Khare (1984) k.
+    lw_haze: str = "obs"
     # match the reference Fortran RT: warm LW top boundary, LW surface reflection
     # (eps=0.95), SW surface albedo 0.15, Rayleigh scattering in the shortwave
     match_fortran: bool = True
@@ -195,6 +238,13 @@ def haze_band_tau(column, micro, p: OpticsParams, band_centers, kind,
     if mode == "rdg":
         from .aggregate_optics import aggregate_haze_layer_tau
         d = micro.params.d_mono
+        if kind == "i" and p.lw_haze == "obs":
+            # LW = observational spectral absorptivity per unit visible
+            # extinction (chi) x the model's visible extinction profile.
+            om_ref = spectral_haze_sw((_CHI_VIS_REF,))[0]
+            tau_v = p.haze_abs_scale * aggregate_haze_layer_tau(
+                column, micro, (_CHI_VIS_REF,), om_ref, d)        # (1, nlyr)
+            return obs_lw_chi(band_centers, column.P_mid) * tau_v
         return p.haze_abs_scale * aggregate_haze_layer_tau(
             column, micro, band_centers, omega0_band, d, pure_absorber=(kind == "i"))
     return np.broadcast_to(layer_haze_tau(column, micro, p), (nb, column.nlyr))
