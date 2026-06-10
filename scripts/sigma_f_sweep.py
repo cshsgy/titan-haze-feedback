@@ -3,8 +3,10 @@
 the absorbing-haze bistability (polydisperse follow-up).
 
 Pieces 4-5 found that at sigma_F=2.0 the bimodal haze is ~4.4x optically thinner
-than monodisperse (gravitational sorting) and the radiative-convective
-equilibrium becomes monostable.  Both effects are sigma_F-dependent.  This sweep:
+than monodisperse (gravitational sorting) and the warm-cool split collapses to a
+few K at the nominal haze (note: the consistent transition-state-haze test in
+scripts/bistable_states.py retains a converged ~8 K residual -- suppressed, not
+eliminated).  Both effects are sigma_F-dependent.  This sweep:
   (a) cheap optics scan -- visible column tau and centroid vs sigma_F, to find the
       width that recovers the observed column tau ~ 8;
   (b) DISORT bistability (warm vs cool start, same haze) at a few sigma_F, to map

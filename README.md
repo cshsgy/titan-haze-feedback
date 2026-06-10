@@ -68,7 +68,7 @@ photochemistry module (CH₄/N₂ photolysis) so the haze mass flux responds to 
 radiation field and composition, completing the radiation ↔ chemistry ↔
 microphysics feedback.
 
-## Repository layout (planned)
+## Repository layout
 
 ```
 papers/                 source PDFs (reference literature)
@@ -76,12 +76,19 @@ docs/
   physics_parameters.md baseline constants & profiles extracted from the papers
   scaling_law.md        derivation of C(z,N) dz dN = f(z,N,T,d,D)
   rt_discrepancies.md   ranked differences between our DISORT RT and the Fortran RT
+  step3_coupling.md     Step 3 wiring plan + bistability result/diagnosis
+  polydisperse_scheme.md bimodal 2-moment log-normal scheme (B&R 2017) + results
 src/microphysics/       Step 2 scaling-law solver
   constants.py          physical constants + AerosolParams
   atmosphere.py         background T(z), P(z), g(z), eta(T), lambda(T,P), K(z)
   transport.py          fractal geometry, settling omega, coagulation kernel beta
   scaling_law.py        K->0 master-ODE integrator -> n(z), Nbar(z), rho_h(z)
   bvp.py                full eddy-diffusion BVP (master ODE as initial guess)
+  moments.py            polydisperse: log-normal alpha(k), moment-avg settling
+  coagulation.py        polydisperse: bimodal Fuchs-kernel coag (GH quadrature)
+  scaling_law_bimodal.py polydisperse: K->0 bimodal (S+F) master ODE + to_micro
+  bvp_bimodal.py        polydisperse 8-field BVP (deferred: needs relaxation solver)
+src/coupling/           Step 3: presc_haze.py writes Fortran prescribed-haze tables
 src/example_bowen_fort/ Step 1 RT engine: reference TAM-lineage Fortran model
 src/rt/                 DISORT cross-check of Step 1 (needs pydisort/.rtenv)
   column.py             layered column from an Atmosphere; heating-rate helper
@@ -215,10 +222,26 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       iteration. **Diagnosed** (`scripts/diagnose_transition.py`,
       `scripts/rt_multiplicity.py`): the microphysics T→haze map is smooth (no
       cliff), but the RT is **genuinely bistable** for a fixed haze (two
-      radiative–convective equilibria, ~31 K apart, engine-independent) — a real
-      absorbing-haze radiative feedback (haze rises with T → absorbs higher →
-      warmer), not a microphysics or mapping artifact. A converged branch needs
-      harder damping / a continuation method (see `docs/step3_coupling.md`,
-      `writing/figs/{coupled_feedback,transition_diagnosis}.png`). The earlier
+      radiative–convective equilibria, 17 K apart at the stratopause / up to 31 K
+      through the profile, engine-independent) — a real absorbing-haze radiative
+      feedback (haze rises with T → absorbs higher → warmer), not a microphysics
+      or mapping artifact. A converged branch needs harder damping / a
+      continuation method (see `docs/step3_coupling.md`,
+      `writing/figs/{bistable_states,transition_diagnosis}.png`). The earlier
       top-oscillation blocker is resolved (per-layer step cap, ~24→2.5 K).
+- [x] Step 3 follow-up — **polydisperse microphysics**
+      (`src/microphysics/{moments,coagulation,scaling_law_bimodal}.py`,
+      `docs/polydisperse_scheme.md`): bimodal 2-moment log-normal scheme
+      (Burgalat & Rannou 2017), spheres + fractal aggregates with moment-averaged
+      settling and full-Fuchs-kernel coagulation. **Findings:** (i) gravitational
+      sorting thins the haze steeply with the aggregate width σ_F (visible column
+      τ 8.4 monodisperse → 6.2 at σ_F=1.2 → 1.9 at σ_F=2.0; observed τ≈8 needs
+      σ_F≲1.2 — a constraint on Titan's aggregate spread;
+      `scripts/sigma_f_sweep.py`). (ii) The bistability is **strongly suppressed
+      but not eliminated**: the consistent transition-state-haze test gives a
+      converged ~8 K warm−cool split (vs 17 K monodisperse), ~3–4 K at the
+      nominal haze — the wide two-equilibria behaviour is largely a single-size
+      artifact (`scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`,
+      paper Fig. 6). The 8-field eddy-diffusion BVP is deferred (needs a
+      relaxation solver; `bvp_bimodal.py`).
 - [ ] Step 4 — photochemistry coupling

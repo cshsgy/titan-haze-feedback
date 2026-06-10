@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Plot the converged equilibria cached by bistable_states.py.
 
-Two panels: the monodisperse haze settles to two distinct branches (bistable),
-the polydisperse (bimodal) haze settles to one (monostable).  Reads the npz so
-the figure can be retuned without re-running DISORT.
+Two panels: the monodisperse haze settles to two well-separated branches
+(bistable, 17 K), the polydisperse (bimodal) haze to two close branches (~8 K,
+weakly bistable -- strongly suppressed, not eliminated).  Reads the npz so the
+figure can be retuned without re-running DISORT.
 
     .rtenv/bin/python scripts/plot_bistable.py [sf]      # sf in {1.2, 2.0}; default 2.0
 Writes writing/figs/bistable_states.png

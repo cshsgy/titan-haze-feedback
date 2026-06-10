@@ -163,6 +163,14 @@ $T=F(\mathrm{haze}(T))$ that follows one branch; the two branches and the
 absorbing-haze multiple-equilibria mechanism are the headline Step-3 science
 result (Titan's haze feedback is strong enough to be bistable in this model).
 
+**Polydisperse caveat (see `docs/polydisperse_scheme.md`).** The wide bistability
+above is for the **monodisperse** closure. Repeating the fixed-haze test with the
+bimodal (polydisperse) haze gives a converged warm−cool split of only ~8 K
+(stratopause; 17 K monodisperse) at the transition-state haze and ~3–4 K at the
+nominal haze (`scripts/bistable_states.py`, paper Fig. 6): the bistability is
+**strongly suppressed but not eliminated** — largely a single-size artifact, with
+at most a weak residual multiplicity.
+
 ## Risks / decisions to make
 
 1. **Unconverged Fortran top — RESOLVED.** The haze source sits at ~1 Pa, where

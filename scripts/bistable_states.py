@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """The converged equilibria of the coupled system: bistable (monodisperse) vs
-monostable (polydisperse).
+weakly bistable (polydisperse).
 
 Replaces the iteration-history view.  Instead of plotting the non-converging
 coupled loop, we show the *stable states each model settles to*: hold the haze
-fixed (the transition-state haze of each model) and relax DISORT to radiative-
-convective equilibrium from a WARM and a COOL initial profile.
+fixed (the transition-state haze, the same state the monodisperse diagnosis
+fixes) and relax DISORT to radiative-convective equilibrium from a WARM and a
+COOL initial profile.
 
-  - monodisperse haze: the two starts land on two distinct equilibria (bistable);
-  - bimodal (polydisperse) haze: both starts converge to one equilibrium
-    (monostable), even at the thick, nearly-observed sigma_F=1.2 limit.
+  - monodisperse haze: two distinct equilibria, 17 K apart at the stratopause
+    (31 K through the profile) -- bistable;
+  - bimodal (polydisperse) haze: the warm branch cools 158->149 K and the split
+    shrinks to a converged ~8 K (sigma_F-independent; verified down to residual
+    0.30 K/day by scripts/check_bimodal_converge.py) -- strongly suppressed,
+    weakly bistable, NOT cleanly monostable.
 
     .rtenv/bin/python scripts/bistable_states.py
 Writes writing/figs/bistable_states.png
@@ -80,10 +84,11 @@ def main():
         dTmax = max_profile_split(eqW, eqC)
         cache[f"{name}_W_T"] = eqW.T; cache[f"{name}_W_P"] = eqW.P
         cache[f"{name}_C_T"] = eqC.T; cache[f"{name}_C_P"] = eqC.P
+        verdict = ("BISTABLE" if dT > 12 else
+                   "weakly bistable" if dT > 4 else "monostable")
         print(f"{name:14s}: warm {eqW.T.max():.1f} K (resid {rW:.2f})  "
               f"cool {eqC.T.max():.1f} K (resid {rC:.2f})  -> stratopause split "
-              f"{dT:.0f} K, max-profile split {dTmax:.0f} K  "
-              f"{'BISTABLE' if dT > 10 else 'monostable'}")
+              f"{dT:.0f} K, max-profile split {dTmax:.0f} K  {verdict}")
     cache["base_T"] = base.temperature(base.z); cache["base_P"] = base.pressure(base.z)
     p = ROOT / "writing" / "figs" / "bistable_states.npz"
     np.savez(p, **cache)
