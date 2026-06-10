@@ -169,3 +169,17 @@ Remaining gaps are the **near-massless top layer** (1 Pa: SW 61 vs 82, LW −45 
 and the unmatched **CIA exp-sum fit (#4)** and **delta-scaling (#6)** — left as-is
 since the net bulk effect already agrees. Set `match_fortran=False` to recover the
 physically-pure boundaries (cold space, no Rayleigh, black surface).
+
+## SW per-mass check (closing the +11 K overshoot, phase 3)
+
+Is the model's 2.6x visible-tau excess aloft (vs the observational haze, 100 Pa,
+`scripts/diagnose_tau_gap.py`) an optics artifact of the fixed observational
+omega0 ~ 0.9 (C_ext = C_abs/(1-omega0))? **No.** For Df=2 the RDG-FA scattering
+saturates: C_sca = N^2 C_sca,mono S(kR_g) with S -> (kR_g)^-2 and R_g^2 ∝ N gives
+C_sca ∝ N — the same mass scaling as absorption. Per-mass extinction is
+size-independent within 5% for N >= 100 (model aloft has Nbar = 1.7e3-3e4,
+kR_g = 26-109), and the RDG-FA asymptotic omega0 = 0.944 matches the
+observational ~0.92 used. The aloft excess is therefore the **monodisperse
+closure's mass distribution**; the bimodal haze already brings tau(P) to
+0.96-1.3x of observational below 100 Pa (Phase-0 table). No optics change
+warranted. Residual: the 1-10 Pa production zone (model ~1.5-2x obs, tau<0.2).
