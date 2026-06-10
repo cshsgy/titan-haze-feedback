@@ -184,9 +184,14 @@ composite map becomes nearly flat (slope ~0.1; was |slope|≫1), all six
 branch-tracked chains converge to a ~194 K stratopause (mono warm/cool split
 0.1 K; bimodal ±2–3 K, limited by an intermittent inner-RT spike near the 1 Pa
 top — rt_resid ~51 K/day passes — not a second attractor), the frozen-haze
-warm/cool splits collapse to ≤6 K of either sign, and the +11 K overshoot vs
-the 183 K prescribed-haze reference matches the model's remaining 2.6× visible
-tau excess aloft. **The haze IR/vis opacity ratio sets the feedback regime**;
+warm/cool splits collapse to ≤6 K of either sign, and the fixed point agrees
+with the prescribed-haze references (Fortran engine 195.1 K @ 14.5 Pa — fresh
+converged 40-snapshot run; an earlier rerun NaN'd after snapshot 1 for
+unestablished reasons (dist.txt is write-only, so restoring it was not the
+fix; identical config succeeded on retry — treat as flaky and check
+temperatures.txt for NaN rows after every run); same-engine DISORT ~200 K). Never compare stratopauses across engines (the
+early "+11 K overshoot vs 183 K" did); the residual 2.6× mono visible-tau
+excess aloft remains the leading microphysics-observation gap. **The haze IR/vis opacity ratio sets the feedback regime**;
 the bistability drama below is the spurious lab-tholin regime. Paper:
 sec:coupling-result/-diag/-poly (lab-tholin anatomy) + sec:coupling-cont (the
 calibration + benign regime), figs tau_gap.png + continuation_branches.png.

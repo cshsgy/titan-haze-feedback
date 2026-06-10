@@ -241,9 +241,10 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       visible extinction to the observational tables (`lw_haze='obs'`, default)
       gives +53 K one-shot (141.5→194.2 K) and a **benign** coupling: flat
       composite map (slope ~0.1), all six chains → **~194 K stratopause** (mono
-      split 0.1 K), frozen-haze splits ≤6 K, +11 K vs the 183 K prescribed-haze
-      reference (= the remaining 2.6× visible-τ excess aloft). Lab-tholin IR
-      constants manufacture a dramatic feedback that is not there.
+      split 0.1 K), frozen-haze splits ≤6 K — in agreement with the
+      prescribed-haze references (Fortran engine 195 K, same-engine DISORT
+      ~200 K; never compare stratopauses across engines). Lab-tholin
+      IR constants manufacture a dramatic feedback that is not there.
 - [x] Step 3 follow-up — **polydisperse microphysics**
       (`src/microphysics/{moments,coagulation,scaling_law_bimodal}.py`,
       `docs/polydisperse_scheme.md`): bimodal 2-moment log-normal scheme

@@ -16,6 +16,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({"font.size": 13, "axes.titlesize": 14, "axes.labelsize": 13,
+                     "legend.fontsize": 11, "lines.linewidth": 2.2,
+                     "figure.titlesize": 15})
+
 ROOT = Path(__file__).resolve().parents[1]
 FIGS = ROOT / "writing" / "figs"
 
@@ -41,7 +45,7 @@ for j, (pre, title) in enumerate(CASES):
     split = abs(sW - sC)
     okW, okC = bool(dW["converged"]), bool(dC["converged"])
     verdict = ("BISTABLE" if split > 5 else
-               "weakly bistable" if split > 2 else "MONOSTABLE")
+               "monostable (within RT noise)" if split > 1 else "MONOSTABLE")
     conv = "" if (okW and okC) else "  [UNCONVERGED CHAIN]"
     print(f"{title:22s} {sW:7.1f} K {sC:7.1f} K {split:5.1f} K  {verdict}{conv}")
 

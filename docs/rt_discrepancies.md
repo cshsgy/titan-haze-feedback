@@ -170,7 +170,7 @@ and the unmatched **CIA exp-sum fit (#4)** and **delta-scaling (#6)** — left a
 since the net bulk effect already agrees. Set `match_fortran=False` to recover the
 physically-pure boundaries (cold space, no Rayleigh, black surface).
 
-## SW per-mass check (closing the +11 K overshoot, phase 3)
+## SW per-mass check (the residual microphysics-haze tau excess, phase 3)
 
 Is the model's 2.6x visible-tau excess aloft (vs the observational haze, 100 Pa,
 `scripts/diagnose_tau_gap.py`) an optics artifact of the fixed observational

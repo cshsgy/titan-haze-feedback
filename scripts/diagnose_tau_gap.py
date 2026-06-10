@@ -23,9 +23,18 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({"font.size": 13, "axes.titlesize": 14, "axes.labelsize": 13,
+                     "legend.fontsize": 11, "lines.linewidth": 2.2,
+                     "figure.titlesize": 15})
+
 from microphysics import Atmosphere, DEFAULT, solve_bvp_profile
 from microphysics.scaling_law_bimodal import solve_bimodal_kzero, to_micro
 from coupling.presc_haze import observational_haze, microphysics_haze
+from rt.optics import OpticsParams
+
+# This script DIAGNOSES the lab-tholin configuration, so the LW haze must use
+# the Khare RDG-IR (the discrepancy being shown), not the obs-calibrated default.
+OP_KHARE = OpticsParams(haze_mode="rdg", lw_haze="khare")
 
 VIS = 20000.0     # cm^-1, ~0.5 um
 LWB = 700.0       # cm^-1, mid-IR
@@ -46,7 +55,7 @@ def main():
                                                            n_out=200, n_quad=14)),
              "bimodal sf2.0": to_micro(solve_bimodal_kzero(atm, DEFAULT, 1.5, 2.0,
                                                            n_out=200, n_quad=14))}
-    model = {k: microphysics_haze(m, atm) for k, m in hazes.items()}
+    model = {k: microphysics_haze(m, atm, op=OP_KHARE) for k, m in hazes.items()}
 
     fig, ax = plt.subplots(1, 3, figsize=(15, 5.5), sharey=True)
     for a, (band_i, wn0, label) in zip(
@@ -73,7 +82,7 @@ def main():
     a.set_xlim(0.05, 100)
     a.set_xlabel("deficit factor  tau_obs / tau_model (visible)")
     a.grid(alpha=0.3); a.legend(fontsize=8)
-    fig.suptitle("Where the model haze opacity is missing (cumulative from TOA)")
+    fig.suptitle("Model (lab-tholin LW) vs observational haze opacity, cumulative from TOA")
     fig.tight_layout()
     out = ROOT / "writing" / "figs" / "tau_gap.png"
     fig.savefig(out, dpi=130)

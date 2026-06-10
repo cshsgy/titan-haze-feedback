@@ -76,9 +76,9 @@ observations) raises the equilibrium by $+53\,\mathrm{K}$ and transforms the
 coupling: the composite map becomes nearly flat (slope $\approx0.1$), every
 branch-tracked chain---monodisperse or polydisperse, warm- or cool-started---
 converges to the same $\sim\!194\,\mathrm{K}$ stratopause (monodisperse
-warm/cool split $0.1\,\mathrm{K}$), $11\,\mathrm{K}$ above the prescribed-haze
-reference (the model's remaining visible-opacity excess aloft), and no
-multiplicity or oscillation survives.  Titan's haze--climate coupling is benign;
+warm/cool split $0.1\,\mathrm{K}$), in agreement with the prescribed-haze
+references ($195\,\mathrm{K}$ Fortran engine, $\sim\!200\,\mathrm{K}$ DISORT
+engine), and no multiplicity or oscillation survives.  Titan's haze--climate coupling is benign;
 treating it with laboratory IR optical constants manufactures a dramatic
 feedback that is not there.
 \end{abstract}
@@ -201,65 +201,26 @@ window by $20$--$90\times$; the LW opacity is instead calibrated to the
 observational haze through its spectral absorptivity per unit visible extinction,
 $\chi(\tilde\nu,P)$.
 
-The longwave combines two sources on a common $40$-band IR grid
-($0$--$2000\,\mathrm{cm^{-1}}$, $50\,\mathrm{cm^{-1}}$ bands). First, \emph{real
-collision-induced absorption}---the dominant thermal-IR continuum on Titan---from
-the HITRAN CIA coefficients \citep{Karman2019} for N$_2$--N$_2$, N$_2$--CH$_4$,
-CH$_4$--CH$_4$, and N$_2$--H$_2$, as $\tau(\nu)=\sum_{\rm pairs}
-k_{AB}(\nu,T)\,n_A n_B\,\Delta z$; the N$_2$--N$_2$ roto-translational band makes
-the far-IR strongly opaque (column $\tau\!\gtrsim\!100$ near
-$50$--$100\,\mathrm{cm^{-1}}$), the origin of Titan's pressure-induced
-greenhouse. Second, \emph{correlated-k gas lines} for the stratospheric coolants
-CH$_4$, C$_2$H$_2$, C$_2$H$_6$, C$_2$H$_4$, and HCN (the same IR $k$-tables and
-$10$-Gauss grid as the shortwave), summed under the perfectly-correlated
-assumption with each gas's VMR profile. Both gases and CIA, plus a pure-absorber
-IR haze, are solved per (band, Gauss-point) with a band-integrated Planck source.
-
-The \emph{shortwave} methane opacity is treated with correlated-$k$, using the
-same visible CH$_4$ $k$-table as the reference Fortran model ($42$ bands $\times$
-$10$ Gauss points, on a $20\times10$ pressure--temperature grid). Per layer the
-gas optical depth is $\tau = k(P,T)\,u$ with $u$ the CH$_4$ column abundance in
-km-amagat; all $420$ (band, Gauss-point) sub-intervals are solved in a single
-multi-wave DISORT call and recombined by the Gauss weights, with the per-band
-solar flux integrated from the Houghton spectrum and scaled to Titan's orbit
-($9.5\,$AU, $\sum$ bands $=\SI{15.1}{W.m^{-2}}$). The CH$_4$ windows let sunlight through to
-the surface while the bands absorb aloft; CH$_4$ alone absorbs
-$\approx\!\SI{1.4}{W.m^{-2}}$, peaking at $\sim\!14\,\mathrm{K}$ per Titan day in
-the stratosphere.
-
-We relax the \emph{layer-mean} temperature toward radiative--convective
-equilibrium: each iteration runs both bands, nudges the layer temperatures along
-the net heating rate (under-relaxed; the layer-mean state is in 1:1
-correspondence with the per-layer heating, avoiding the
-level$\leftrightarrow$layer aliasing that otherwise seeds a grid-scale zig-zag),
-then applies a convective adjustment to a critical lapse rate ($\sim\!1\,\mathrm{K\,km^{-1}}$).
-Cold space is imposed as the top boundary (a thermal emission temperature of
-$2.7\,\mathrm{K}$, not the atmosphere's top temperature); without this the
-column spuriously absorbs downwelling longwave and overheats.
+The longwave combines, on a common $40$-band IR grid, the collision-induced
+continuum (HITRAN coefficients; \citealp{Karman2019}; the N$_2$--N$_2$
+roto-translational band is the origin of Titan's pressure-induced greenhouse),
+correlated-$k$ gas lines for the stratospheric coolants
+(CH$_4$/C$_2$H$_2$/C$_2$H$_6$/C$_2$H$_4$/HCN), and the pure-absorber haze; the
+shortwave treats CH$_4$ with the same correlated-$k$ tables as the reference
+Fortran model under the Houghton solar spectrum at $9.5$\,AU.  The layer-mean
+temperature is relaxed to radiative--convective equilibrium with convective
+adjustment and a cold-space top boundary.  Grids, $k$-tables, solver relaxation,
+and boundary details are collected in SI~\ref{si:rt}.
 
 The solver reaches a genuine steady state with energy closed to
-$\sim\!0.1$--$1\,\mathrm{W\,m^{-2}}$. Driven by the Step~2 microphysics haze
-(through the RDG cross-section) it has the right vertical structure---a stratopause,
-a cold tropopause near $74\,\mathrm{K}$, a $\sim\!92\,\mathrm{K}$ surface---with a
-stratopause near $140\,\mathrm{K}$, up from $\sim\!115\,\mathrm{K}$ with the old
-gray cross-section but still below the observed $\sim\!190\,\mathrm{K}$
-(Fig.~\ref{fig:ebal}, red).
-
-To localize the residual deficit we ran the \emph{same} radiative engine on the
-observationally-prescribed haze (the optical depths the reference model uses)
-instead of the microphysics haze. It then reaches a $\sim\!200\,\mathrm{K}$
-stratopause, matching the reference (Fig.~\ref{fig:fortran}, green vs.\ black) ---
-so the radiation physics (correlated-$k$ CH$_4$ shortwave, mean-field haze optics,
-CIA + correlated-$k$ gas-line longwave, convective adjustment, energy closure) is
-\emph{correct}. The mean-field cross-section fixed the optical-depth
-\emph{magnitude} (visible column $\tau\!\approx\!8$, matching observation, versus
-$\sim\!70$ before) and warmed the stratopause by $\sim\!30\,\mathrm{K}$; the
-remaining gap is the haze \emph{vertical distribution}, which is set by the Step~2
-microphysics ($\rho_h\!\propto\!1/\omega$) and differs from the observed profile.
-Closing it is a microphysics task (the haze production/settling that sets where
-the optical depth sits), not a radiation one. The validated radiation engine,
-energy closure, and haze$\rightarrow$optics$\rightarrow$DISORT coupling are in
-place, which is what Step~3 requires.
+$\sim\!0.1$--$1\,\mathrm{W\,m^{-2}}$ (Fig.~\ref{fig:ebal}).  Driven by the
+observationally-prescribed haze it reaches a $\sim\!200\,\mathrm{K}$ stratopause,
+matching the reference Fortran model run on the same haze
+(Fig.~\ref{fig:fortran}, green vs.\ black)---the radiation physics is validated
+end-to-end.  Driven by the Step~2 \emph{microphysics} haze with the calibrated
+LW opacity (\S\ref{sec:coupling-cont}) it reaches $\sim\!194\,\mathrm{K}$, with
+the right vertical structure throughout (cold tropopause near
+$74\,\mathrm{K}$, $\sim\!92\,\mathrm{K}$ surface).
 
 \begin{figure}[t]
   \centering
@@ -278,98 +239,48 @@ place, which is what Step~3 requires.
 
 As an independent check we compare against a mature Fortran radiation model of
 the TAM lineage \citep[][the same scheme family as Lombardo \& Lora 2023]{Lombardo2023},
-a full correlated-$k$ treatment (CH$_4$, C$_2$H$_2$, C$_2$H$_6$, C$_2$H$_4$, HCN
-plus N$_2$--N$_2$/N$_2$--CH$_4$/CH$_4$--CH$_4$/N$_2$--H$_2$ CIA) with prescribed
-haze, run to radiative--convective equilibrium on a $100$-layer column under
-diurnally-averaged insolation (the diurnal cycle disabled for faster
-convergence). Both models are at steady state. We run our DISORT column on the
-\emph{same} grid---$100$ layers spaced equally in $\log p$ from the $1\,\mathrm{
-Pa}$ model top to the surface---so the comparison is not confounded by vertical
-resolution.
-
-Figure~\ref{fig:fortran} overlays three profiles on a shared pressure
-coordinate. Driven by the Step~2 microphysics haze with mean-field optics (red),
-our model has the right structure and a $\sim\!140\,\mathrm{K}$ stratopause;
-driven instead by the \emph{prescribed} haze (green)---the observational optical
-depths the reference uses, in the same radiative engine---it reaches
-$\sim\!200\,\mathrm{K}$ and tracks the reference (black) closely. This isolates
-the discrepancy cleanly: the radiation is right (the engine reproduces the
-reference given the same haze), so the residual red--green gap is the
-microphysics haze. The mean-field cross-section already corrected its
-\emph{magnitude} (the column optical depth, previously $\sim\!8\times$ too large);
-what remains is the haze \emph{vertical distribution}---the microphysics deposits
-its optical depth deeper than the observed profile---which is governed by the
-Step~2 haze production and settling, not by the radiation.
+a full correlated-$k$ treatment with prescribed haze, run to
+radiative--convective equilibrium on the \emph{same} $100$-layer
+log-pressure grid ($1$\,Pa top) under diurnally-averaged insolation, so the
+comparison is not confounded by vertical resolution.
+Figure~\ref{fig:fortran} overlays the equilibria on a shared pressure
+coordinate: driven by the \emph{prescribed} haze---the observational optical
+depths the reference uses, in our radiative engine---the DISORT column reaches
+$\sim\!200\,\mathrm{K}$ and tracks the reference closely, validating the engine;
+driven by the Step~2 microphysics haze (calibrated LW,
+\S\ref{sec:coupling-cont}) it reaches $\sim\!194\,\mathrm{K}$, the residual
+offset reflecting the microphysics haze's remaining visible-opacity excess
+aloft rather than the radiation.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{figs/fortran_comparison.png}
   \caption{Our DISORT energy balance with the Step~2 \emph{microphysics} haze
-    (red) and with the observational \emph{prescribed} haze (green), versus the
-    reference TAM-lineage correlated-$k$ Fortran model (black, time-mean of the
-    last 20 snapshots), on a shared pressure axis. With the same haze the engines
-    agree (green vs.\ black); the red--green gap is the microphysics haze. Right:
-    shortwave heating and longwave cooling. The grey band is the reference's
-    $\pm1\sigma$ snapshot scatter: its explicit forward-Euler stepper formerly
-    oscillated by up to $\sim\!24\,\mathrm{K}$ above $\sim\!4\,\mathrm{Pa}$; a
-    per-layer step cap reduces this to $\sim\!2.5\,\mathrm{K}$ at the model top
-    with the converged profile unchanged, so the upper-atmosphere comparison is
-    now against an essentially converged reference.}
+    (red, calibrated LW) and with the observational \emph{prescribed} haze
+    (green), versus the reference TAM-lineage correlated-$k$ Fortran model
+    (black, dashed), on a shared pressure axis. In the stratosphere the
+    prescribed-haze runs of the two engines bracket a
+    $\sim\!195$--$200\,\mathrm{K}$ stratopause band (residual solver and
+    boundary differences); the microphysics-haze equilibrium falls at its
+    edge.
+    Right: shortwave heating and longwave cooling. Below
+    $\sim\!10^{3}\,\mathrm{Pa}$ the radiative relaxation time exceeds the
+    integration length for both models, so each retains its own initial state
+    there; the meaningful comparison is the stratosphere. (The reference's
+    explicit stepper formerly oscillated by up to $\sim\!24\,\mathrm{K}$ near
+    the $1$\,Pa top; a per-layer step cap reduces this to
+    $\sim\!2.5\,\mathrm{K}$.)}
   \label{fig:fortran}
 \end{figure}
 
-\subsection{Per-source opacity breakdown}
-\label{sec:opacity-breakdown}
-
-To localise the residual heating-rate differences we compare the two engines'
-optical depth \emph{source by source} at the same state (the reference's
-converged $P(T)$ profile and the shared prescribed haze), accumulating each
-contribution---haze, CH$_4$ shortwave gas, IR gas lines (CH$_4$/C$_2$H$_2$/%
-C$_2$H$_6$/C$_2$H$_4$/HCN), Rayleigh, and CIA---separately from the top down
-(Fig.~\ref{fig:opacity}). For this we enabled the reference model's
-per-band Gauss-weighted gas-opacity output, so even the correlated-$k$ gas can
-be compared directly rather than inferred.
-
-The prescribed haze, which both models read from the same observational tables,
-interpolates identically: at matched band centres the per-band optical depth
-agrees to machine precision (ratio $1.000$) in both the shortwave and the
-longwave, at every level. The CH$_4$ correlated-$k$ gas likewise agrees at the
-column scale (shortwave $1.03$, longwave $1.08$). The one source that genuinely
-differed is the collision-induced absorption (CIA), which lives in the deep
-atmosphere ($P\gtrsim10\,\mathrm{kPa}$): there the breakdown showed our continuum
-running well above the reference's.
-
-We traced this to the CIA formulation. Our model band-averaged the HITRAN
-cross-sections and formed $\tau=\sum_\mathrm{pairs}k\,n_A n_B\,\Delta z$, whereas
-the reference evaluates a three-term exponential-sum fit to the band
-\emph{transmission}, $\mathcal{T}=\sum_i a_i\exp(-k_i u)$ with $\tau=-\ln\mathcal
-{T}$ and absorber amount $u=n_1 n_2\,\Delta z$---a form that captures the sub-band
-absorber-amount nonlinearity a single band-averaged cross-section cannot. On the
-shared Titan far-IR continuum the band-averaged cross-section overestimated the
-optical depth by $\sim\!1.75\times$. Adopting the reference's exponential-sum
-fits (reading the same transmission tables) brings the two continua into
-agreement to a few percent through the bulk of the deep atmosphere
-(Fig.~\ref{fig:opacity}, bottom row; the per-band cumulative-$\tau$ ratio is
-$1.00$ at $30\,\mathrm{kPa}$, with the residual confined to the single lowest
-layer). With this, \emph{every} opacity source---haze, CH$_4$, gas lines,
-Rayleigh, and CIA---matches the reference to within a few percent through the
-column, so the engines now differ only in the radiative-transfer solution
-itself, not in the optical depths fed to it.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figs/opacity_breakdown.png}
-  \caption{Cumulative optical depth from the top of atmosphere, by source, for
-    our DISORT optics (solid) and the reference Fortran model (dashed), at the
-    same state. Top row: shortwave (haze, CH$_4$ gas, Rayleigh) in three
-    representative bands; bottom row: longwave (haze, gas lines, CIA). The shaded
-    band marks the mid-altitude $10$--$100\,\mathrm{Pa}$ region. The haze
-    dominates the mid-atmosphere and matches closely; the CIA continuum (bottom
-    row, deep atmosphere) matches once our model adopts the reference's
-    exponential-sum transmission fits in place of band-averaged HITRAN
-    cross-sections.}
-  \label{fig:opacity}
-\end{figure}
+Beyond the profile overlay, the two engines were matched \emph{source by
+source}: at the same state, every opacity contribution---the shared prescribed
+haze (machine-precision agreement), correlated-$k$ CH$_4$ (column ratios
+$1.03$--$1.08$), gas lines, Rayleigh, and, after adopting the reference's
+exponential-sum CIA transmission fits in place of band-averaged cross-sections,
+the collision-induced continuum---agrees to within a few percent through the
+column (SI~\ref{si:opacity}).  The engines differ only in the radiative-transfer
+solution itself, not in the optical depths fed to it.
 
 \section{Microphysical scaling law (Step 2)}
 \label{sec:scaling}
@@ -445,44 +356,17 @@ Both $\omega$ and $\beta$ are thus explicit functions of $(\Nbar,z,T,d,\Df)$; th
 temperature enters through $k_BT/\eta$, $(k_BT/\rho_p)^{1/2}$, $\eta(T)$, and
 $\lambda(T,P)$.
 
-\subsection{Governing boundary-value problem}
-
-Working with the aggregate number density $n$ and the monomer-volume density
-$M\equiv n\Nbar$ (mass $=m_1 M$, $m_1=\rho_p\tfrac{4}{3}\pi d^3$), the steady 1-D
-balance for any density $q$ with downward settling speed $\omega$ and eddy
-diffusivity $K(z)$ reads $\dd_z[\omega q + K\,\dd_z q]=L_q-S_q$, where
-$\omega q + K\,\dd_z q$ is the downward flux, $S_q$ the production, and $L_q$ the
-loss. Applied to the two densities,
-\begin{align}
-  \frac{\dd}{\dd z}\!\left[\omega(\Nbar,z)\,M + K\,\frac{\dd M}{\dd z}\right]
-    &= -\,S_M(z),
-    \label{eq:bvpM}\\
-  \frac{\dd}{\dd z}\!\left[\omega(\Nbar,z)\,n + K\,\frac{\dd n}{\dd z}\right]
-    &= \tfrac{1}{2}\,\beta(\Nbar,z)\,n^2 - S_n(z).
-    \label{eq:bvpn}
-\end{align}
-Equation~\eqref{eq:bvpM} expresses monomer conservation: coagulation merges
-particles but preserves total monomer volume, so the only monomer source is
-production. Equation~\eqref{eq:bvpn} expresses Smoluchowski number loss---each
-collision removes one aggregate at rate $\tfrac{1}{2}\beta n^2$---plus seeding.
-With $\Nbar=M/n$ and $\Df=\Df(\Nbar)$, this is a coupled two-point
-boundary-value problem for $M(z),n(z)$. The production source is a Gaussian
-\citep[Eq.~5]{deTrenquelleon2025},
-\begin{equation}
-  S_M(z)=\frac{\Qprod}{m_1}\,G(z),\quad
-  G(z)=\frac{1}{\sqrt{2\pi}\,\Delta z}\exp\!\left[-\frac{(z-z_0)^2}{2\,\Delta z^2}\right],
-  \quad S_n=\frac{S_M}{N_{\rm seed}},
-  \label{eq:source}
-\end{equation}
-with $N_{\rm seed}=(r_p/d)^3$. Boundary conditions are vanishing densities at the
-model top and settling-only deposition ($\dd_z M=\dd_z n=0$) at the surface.
-A first integral of \eqref{eq:bvpM} well below the source recovers the constant
-downward monomer flux $\omega M + K\,\dd_z M = P$, with $P=\Qprod/m_1$.
-
 \subsection{Sedimentation-dominated limit: the master scaling ODE}
 
+The steady transport of the number density $n$ and the monomer-volume density
+$M\equiv n\Nbar$ (mass $=m_1 M$, $m_1=\rho_p\tfrac43\pi d^3$) is a two-point
+boundary-value problem---Gaussian production aloft, Smoluchowski number loss
+$\tfrac12\beta n^2$, settling, and eddy diffusion---whose full formulation,
+boundary conditions, and solvers are collected in SI~\ref{si:bvp}.
 Setting $K\to0$ yields a closed-form law---both a physical limit and the initial
-guess for the BVP solver. Monomer-flux constancy gives the classical result that
+guess for the BVP solver. Monomer-flux constancy (coagulation preserves total
+monomer volume, so the downward monomer flux below the source is the constant
+production rate $P=\Qprod/m_1$) gives the classical result that
 the haze mass density equals the mass flux divided by the fall speed,
 \begin{equation}
   \omega\, n\,\Nbar = P
@@ -492,7 +376,7 @@ the haze mass density equals the mass flux divided by the fall speed,
   \rho_h(z)=\frac{\Qprod}{\omega(\Nbar,z)}.
   \label{eq:massflux}
 \end{equation}
-Substituting $\omega n = P/\Nbar$ into \eqref{eq:bvpn} (below the source)
+Substituting $\omega n = P/\Nbar$ into the number balance \eqref{eq:bvpn} (below the source)
 collapses the system to a single first-order ODE for the mean size,
 \begin{equation}
   \boxed{\;
@@ -608,6 +492,46 @@ $K(z)$, identifying the eddy profile as the principal uncertain input.
   \label{fig:validation}
 \end{figure}
 
+\subsection{Polydispersity: a bimodal two-moment extension}
+\label{sec:poly}
+
+The monodisperse closure carries one size per level.  To assess what a realistic
+\emph{size distribution} changes, we extended the scheme to a bimodal two-moment
+log-normal microphysics following \citet{Burgalat2017}: a spherical-monomer mode
+and a fractal-aggregate mode, each carried by its number and volume moments,
+with Brownian coagulation evaluated by Gauss--Hermite quadrature over the full
+Fuchs kernel, an inter-mode coalescence transfer, and moment-specific settling
+velocities (SI~\ref{si:bvp}).  The leading new effect is \emph{gravitational
+sorting}: the moment-averaged settling velocities differ,
+$\langle\omega\rangle_3>\langle\omega\rangle_0$, so a broad aggregate
+distribution sheds its mass faster than a single particle of the mean size and
+less haze accumulates aloft.  The visible column optical depth falls steeply
+with the aggregate geometric width $\sigma_F$ (Fig.~\ref{fig:sigmaF}): from
+$\tau\!\approx\!8.4$ in the monodisperse limit to $6.2$ at $\sigma_F=1.2$ and
+$1.9$ at $\sigma_F=2.0$.  Matching the observed $\tau\!\approx\!8$ requires a
+narrow distribution, $\sigma_F\!\lesssim\!1.2$, so the haze opacity becomes a
+\emph{constraint} on the aggregate size spread.  The bimodal haze also places
+its opacity \emph{vertically} much closer to the observational profile than the
+monodisperse closure (within $0.96$--$1.3\times$ below $100\,\mathrm{Pa}$ at
+$\sigma_F=1.2$, versus the monodisperse $2.6\times$ excess at
+$100\,\mathrm{Pa}$).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/sigma_f_sweep.png}
+  \caption{Bimodal (polydisperse) haze versus the aggregate geometric width
+    $\sigma_F$.  Left: the visible column optical depth falls steeply with
+    $\sigma_F$ (gravitational sorting), reaching the observed $\tau\!\approx\!8$
+    only for a narrow distribution $\sigma_F\!\lesssim\!1.2$; the $\tau$-weighted
+    centroid (dashed, right axis) rises as the haze thins.  Right: in the
+    lab-tholin configuration of \S\ref{sec:coupling-result}, with the haze taken
+    at the nominal temperature, the warm$-$cool stratopause split (the
+    multiplicity indicator) stays near $3$--$4\,\mathrm{K}$ across $\sigma_F$,
+    far below the monodisperse $17\,\mathrm{K}$: a realistic size distribution
+    strongly suppresses the frozen-haze multiplicity of that regime.}
+  \label{fig:sigmaF}
+\end{figure}
+
 \section{Coupled iteration (Step 3)}
 \label{sec:coupling}
 
@@ -625,9 +549,9 @@ then
   \ \xrightarrow{\text{optics}}\ \Delta\tau,\omega_0,g
   \ \xrightarrow{\text{RT engine}}\ T(z),
 \]
-iterated under-relaxed. The sign and strength of the feedback are read from the
-iteration sequence---which, as we show, does not converge to a single fixed point
-but exposes a bistable system.
+iterated under-relaxed. The central finding of this section is that the
+\emph{regime} of this feedback---benign or near-bistable---is set by a single
+material property, the haze IR opacity.
 
 \subsection{Implementation and the coupled iteration}
 \label{sec:coupling-impl}
@@ -665,7 +589,7 @@ value, the radiative--convective relaxation is genuinely multi-valued: warm and
 cool initial profiles land on distinct equilibria, $158$ versus $141\,\mathrm{K}$
 at the stratopause ($17\,\mathrm{K}$; up to $31\,\mathrm{K}$ deeper), reproduced
 in two independent RT engines; a bimodal polydisperse haze halves the frozen-haze
-split ($\sim\!8\,\mathrm{K}$, \S\ref{sec:coupling-poly}).  A damped
+split ($\sim\!8\,\mathrm{K}$, \S\ref{sec:coupling-diag}).  A damped
 branch-tracking solve of the full coupled map $T=F(\mathrm{haze}(T))$ (the method
 of \S\ref{sec:coupling-cont}) nevertheless found a \emph{single} coupled fixed
 point, stratopause $\sim\!142\,\mathrm{K}$, for every closure: the haze response
@@ -673,8 +597,9 @@ removed the warm branch, and the loop's oscillation was overshoot of a steep
 ($|$slope$|\gg1$) but single-valued composite map.
 
 Two features of this regime co-exist uneasily: a near-bistable feedback, and a
-coupled state $\sim\!40\,\mathrm{K}$ \emph{colder} than the $183\,\mathrm{K}$
-prescribed-haze equilibrium driven by the same RT.  As we show next, both have a
+coupled state $50$--$60\,\mathrm{K}$ \emph{colder} than the prescribed-haze
+references ($195\,\mathrm{K}$ in the Fortran engine, $\sim\!200\,\mathrm{K}$
+in the same DISORT engine that hosts the coupled solve).  As we show next, both have a
 single cause---the haze IR opacity---and neither survives its observational
 calibration.
 
@@ -682,96 +607,24 @@ calibration.
 \label{sec:coupling-diag}
 
 Within the lab-tholin configuration, the composite map is
-$T\!\to\!\text{haze}\!\to\!T$; we isolate each half to locate the sharp
-transition. \emph{First}, the microphysics is smooth: sweeping input
-temperature profiles across stratopause $128$--$225\,\mathrm{K}$ and recomputing
-the haze for each, the column optical depth, the $\tau$-weighted centroid
-pressure, and the haze mass column all vary continuously --- largest adjacent
-change $\le3.5\%$, with no feature at $137\,\mathrm{K}$ (Fig.~\ref{fig:transition}).
-The haze centroid \emph{rises} smoothly with temperature
-($1714\to770\,\mathrm{Pa}$ over that range), the signature of a positive feedback:
-a warmer stratosphere lifts the absorbing haze, which then absorbs higher and
-warms it further. \emph{Second}, the radiative transfer is genuinely
-multi-valued: holding the haze \emph{fixed} (the transition-state haze) and
-relaxing the radiative--convective equilibrium from a warm versus a cool initial
-state lands on two distinct equilibria, stratopause $158\,\mathrm{K}$ versus
-$141\,\mathrm{K}$ ($\Delta T\approx17\,\mathrm{K}$ at the stratopause, up to
-$31\,\mathrm{K}$ deeper in the profile); the separation is stable as the residual
-falls, so it is real multiplicity rather than under-convergence, and it
-reproduces in the independent DISORT engine.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figs/transition_diagnosis.png}
-  \caption{Microphysics haze response to the input temperature. Haze column
-    optical depth (left), $\tau$-weighted centroid pressure (centre), and
-    cumulative $\tau(p)$ (right) all vary smoothly across the coupled transition
-    (shaded, $\sim\!137\,\mathrm{K}$): the $T\!\to\!$haze map has no cliff, so the
-    bistability is radiative, not microphysical.}
-  \label{fig:transition}
-\end{figure}
-
-Together these identify the $137\,\mathrm{K}$ transition as a genuine radiative
-feedback \emph{of the lab-tholin configuration}, not a microphysics regime change
-or a coupling artifact: the strongly-absorbing haze, smoothly mobile in altitude
-with temperature, gives the one-dimensional radiative--convective system two
-fixed-haze states with gain $>1$ between them --- the absorbing-aerosol
-multiple-equilibria mechanism, driven self-consistently by the aerosol
-microphysics.  The next question is whether the material properties that place
-the model in this dramatic regime are Titan's; \S\ref{sec:coupling-cont} shows
-they are not.
-
-\subsection{Polydispersity: an opacity constraint, and a first suppression of
-the multiplicity}
-\label{sec:coupling-poly}
-
-The diagnosis above assumes the monodisperse closure of \S\ref{sec:scaling}: one
-size $\bar N(z)$ per level.  Because the feedback is opacity-driven,
-it is worth asking whether a realistic \emph{size distribution} changes the
-picture.  We replaced the closure with a bimodal two-moment log-normal scheme (a
-spherical-monomer mode and a fractal-aggregate mode, each carried by its number
-and volume moments, with Brownian coagulation, an inter-mode coalescence
-transfer, and size-dependent settling), following \citet{Burgalat2017}.  Two
-effects appear that the single-size model cannot represent.  First, \emph{
-gravitational sorting}: the moment-averaged settling velocities differ,
-$\langle\omega\rangle_3>\langle\omega\rangle_0$, so the broad aggregate
-distribution sheds its mass faster than a single particle of the mean size and
-less haze accumulates aloft.  The visible column optical depth then falls steeply
-with the geometric width $\sigma_F$ (Fig.~\ref{fig:sigmaF}, left): from
-$\tau\!\approx\!8.4$ in the monodisperse limit to $6.2$ at $\sigma_F=1.2$ and
-$1.9$ at $\sigma_F=2.0$.  Matching the observed $\tau\!\approx\!8$ requires a
-narrow distribution, $\sigma_F\!\lesssim\!1.2$, so the haze opacity becomes a
-\emph{constraint} on the aggregate size spread.
-
-Second, within the lab-tholin configuration the \emph{frozen-haze multiplicity
-is strongly suppressed}.  Repeating the fixed-haze warm-versus-cool test of
-\S\ref{sec:coupling-diag} with the bimodal haze, the warm branch cools from $158$
-to $149\,\mathrm{K}$ and the two starts settle only $\sim\!8\,\mathrm{K}$ apart at
-the stratopause---half the monodisperse $17\,\mathrm{K}$---a converged
-separation, stable as the heating residual falls, essentially independent of
-$\sigma_F$, and falling to $\sim\!3$--$4\,\mathrm{K}$ when the haze is taken at
-the nominal rather than the transition-state temperature
-(Fig.~\ref{fig:sigmaF}, right).  A realistic size distribution sheds mass
-faster, concentrates less opacity at altitude, and pulls the feedback gain back
-toward unity---a first caution against reading strong nonlinear feedbacks out of
-monodisperse microphysics, foreshadowing the stronger conclusion of
-\S\ref{sec:coupling-cont}.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figs/sigma_f_sweep.png}
-  \caption{Bimodal (polydisperse) haze versus the aggregate geometric width
-    $\sigma_F$.  Left: the visible column optical depth falls steeply with
-    $\sigma_F$ (gravitational sorting), reaching the observed $\tau\!\approx\!8$
-    only for a narrow distribution $\sigma_F\!\lesssim\!1.2$; the $\tau$-weighted
-    centroid (dashed, right axis) rises as the haze thins.  Right: in the
-    lab-tholin configuration, with the haze taken at the nominal temperature, the
-    warm$-$cool stratopause split (the multiplicity indicator) stays near
-    $3$--$4\,\mathrm{K}$ across $\sigma_F$, far below the monodisperse
-    $17\,\mathrm{K}$: a realistic size distribution strongly suppresses the
-    frozen-haze multiplicity of that regime.}
-  \label{fig:sigmaF}
-\end{figure}
+$T\!\to\!\text{haze}\!\to\!T$; isolating each half locates the sharp transition
+(details and figures in SI~\ref{si:labtholin}).  The microphysics half is
+\emph{smooth}: sweeping input temperature profiles across stratopause
+$128$--$225\,\mathrm{K}$, the haze column optical depth, $\tau$-weighted
+centroid, and mass column all vary continuously (largest adjacent change
+$\le3.5\%$), the centroid rising smoothly with temperature---the positive
+feedback.  The radiative half is genuinely \emph{multi-valued}: holding the
+haze fixed at its transition-state value, warm and cool initial profiles land
+on distinct radiative--convective equilibria ($158$ versus $141\,\mathrm{K}$ at
+the stratopause, up to $31\,\mathrm{K}$ deeper), stable as the residual falls
+and reproduced in two independent engines---the absorbing-aerosol
+multiple-equilibria mechanism, driven self-consistently by the microphysics.
+Polydispersity already weakens it: with the bimodal haze of \S\ref{sec:poly}
+the frozen-haze split halves (to $\sim\!8\,\mathrm{K}$; $3$--$4\,\mathrm{K}$ at
+the nominal haze, Fig.~\ref{fig:sigmaF}, right), the over-concentrated opacity
+of the single-size closure being part of the feedback's strength.  The decisive
+question is whether the material properties that place the model in this
+dramatic regime are Titan's; the next section shows they are not.
 
 \subsection{The haze IR opacity is the decisive material property}
 \label{sec:coupling-cont}
@@ -822,13 +675,14 @@ $\le6\,\mathrm{K}$, of either sign, for both closures): with realistic IR
 opacity the haze--climate coupling on Titan is \emph{benign}---a single,
 strongly attracting state, no oscillation, no multiplicity to suppress.
 
-The coupled fixed point lands $\sim\!11\,\mathrm{K}$ \emph{above} the
-$183\,\mathrm{K}$ prescribed-haze reference, consistent with the model haze's
-remaining $2.6\times$ visible-opacity excess above the stratopause
-(Fig.~\ref{fig:tauGap}, right)---the natural next refinement, along with charge
-inhibition of coagulation and eddy diffusion in the bimodal transport, both of
-which now act on a benign, easily converged system.  The summary lesson is a
-sharpened version of the polydispersity caution of \S\ref{sec:coupling-poly}:
+The coupled fixed point lands in agreement with the prescribed-haze
+references themselves ($195\,\mathrm{K}$ Fortran, $\sim\!200\,\mathrm{K}$
+DISORT; $1\,\mathrm{K}$ below the former, $6\,\mathrm{K}$ below its
+same-engine DISORT reference): the residual microphysics--observation haze
+differences (the $2.6\times$ visible excess aloft, Fig.~\ref{fig:tauGap},
+right) now move the stratopause by less than the inter-engine spread of the
+reference itself.  The summary lesson is a
+sharpened version of the polydispersity caution of \S\ref{sec:poly}:
 the \emph{feedback regime} of a haze--climate model is set by the haze IR/visible
 opacity ratio.  Laboratory-tholin infrared optical constants place the model in
 a spurious strong-feedback regime---oscillating coupled iterations, fixed-haze
@@ -847,8 +701,8 @@ requires.
     observational haze by $20$--$90\times$---the stratosphere cools an order of
     magnitude too efficiently per unit shortwave heating.  Right: the visible
     deficit factor $\tau_{\rm obs}/\tau_{\rm model}$; the residual $2.6\times$
-    model excess aloft explains the $+11\,\mathrm{K}$ overshoot of the
-    calibrated coupled fixed point.}
+    monodisperse excess aloft is the leading remaining microphysics--observation
+    difference (largely removed by the bimodal closure, orange).}
   \label{fig:tauGap}
 \end{figure}
 
@@ -870,18 +724,235 @@ requires.
   \label{fig:continuation}
 \end{figure}
 
-\section{Photochemistry in the loop (Step 4)}
+\section{Outlook}
 \label{sec:photochem}
 
-In Steps 1--3 the production rate $\Qprod$ and seed properties are imposed
-\citep[$\Qprod=\SI{2.1e-13}{kg.m^{-2}.s^{-1}}$ at $z_0\approx415\,\mathrm{km}$;
-][]{deTrenquelleon2025}. Step~4 promotes $\Qprod$ to an output of a
-photochemical module driven by $\mathrm{CH_4}$/$\mathrm{N_2}$ photolysis, so the
-haze mass flux responds to the radiation field and composition, completing the
-radiation$\leftrightarrow$chemistry$\leftrightarrow$microphysics feedback.
+Three refinements follow directly from the converged state.  \emph{(i) The
+residual haze-profile differences.}  The coupled fixed point sits within the
+inter-engine spread of the prescribed-haze reference; the leading remaining
+microphysics--observation difference is the monodisperse visible-opacity excess
+aloft, which the bimodal closure already reduces to $0.96$--$1.3\times$ of the
+observational profile below $100\,\mathrm{Pa}$ (\S\ref{sec:poly}), leaving
+mainly the $1$--$10\,\mathrm{Pa}$ production zone.  \emph{(ii) Charge inhibition.}  The Coulomb coagulation
+barrier ($n_e=15\,e^-\mu\mathrm{m}^{-1}$; \citealp{deTrenquelleon2025}) is
+implemented and measured: it freezes aggregate growth beyond
+$r_a\sim0.3\,\mu$m (bringing the mean monomer count at $100\,\mathrm{Pa}$ from
+$3\times10^4$ down through the observed $\sim\!3\times10^3$), but with the
+production rate held fixed the slower-settling haze accumulates to $5$--$13\times$
+the observed column while moving the stratopause $<1.5\,\mathrm{K}$.  Charge
+therefore enters only \emph{co-tuned} with production and sticking
+efficiency---a recalibration of the Step-2 baseline, not a stratopause lever.
+\emph{(iii) Photochemistry (Step 4).}  In Steps 1--3 the production rate
+$\Qprod$ and seed properties are imposed
+\citep[$\Qprod=\SI{2.1e-13}{kg.m^{-2}.s^{-1}}$ at $z_0\approx415\,\mathrm{km}$;][]{deTrenquelleon2025}.
+Step~4 promotes $\Qprod$ to an output of a photochemical module driven by
+$\mathrm{CH_4}$/$\mathrm{N_2}$ photolysis, so the haze mass flux responds to the
+radiation field and composition, completing the
+radiation$\leftrightarrow$chemistry$\leftrightarrow$microphysics feedback---now
+on a benign, easily converged coupled system.
+
+\paragraph{Approximations.}
+The monodisperse closure replaces the true size spread by $\Nbar$ and evaluates
+the kernel at the mean size (the bimodal extension of \S\ref{sec:poly} relaxes
+this); the spherical$\to$fractal switch at $\Nbar=1$ is treated as
+instantaneous. Background profiles $\eta(T)$, $\lambda(T,P)$ are taken from
+$\mathrm{N_2}$ kinetic theory, $g(z)$ from Titan gravity, and the eddy
+diffusivity $K(z)$ from a standard Titan profile \citep{Vuitton2019}.  A full
+population balance is the main physics refinement beyond these.  Baseline
+parameters are collected in SI~\ref{si:params}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\clearpage
+\appendix
+\renewcommand{\thesection}{S\arabic{section}}
+\setcounter{section}{0}
+\section*{Supplementary Information}
+
+\section{Radiative-transfer implementation details}
+\label{si:rt}
+
+\paragraph{Longwave.} Two opacity sources are combined on a common $40$-band IR
+grid ($0$--$2000\,\mathrm{cm^{-1}}$, $50\,\mathrm{cm^{-1}}$ bands). First,
+collision-induced absorption---the dominant thermal-IR continuum on Titan---from
+the HITRAN CIA coefficients \citep{Karman2019} for N$_2$--N$_2$, N$_2$--CH$_4$,
+CH$_4$--CH$_4$, and N$_2$--H$_2$, as $\tau(\nu)=\sum_{\rm pairs}
+k_{AB}(\nu,T)\,n_A n_B\,\Delta z$ (band-averaged), or via the reference model's
+exponential-sum transmission fits when matching it (SI~\ref{si:opacity}); the
+N$_2$--N$_2$ roto-translational band makes the far-IR strongly opaque (column
+$\tau\!\gtrsim\!100$ near $50$--$100\,\mathrm{cm^{-1}}$). Second, correlated-$k$
+gas lines for the stratospheric coolants CH$_4$, C$_2$H$_2$, C$_2$H$_6$,
+C$_2$H$_4$, and HCN ($10$-point Gauss grid), summed under the
+perfectly-correlated assumption with each gas's VMR profile. Gases, CIA, and the
+pure-absorber IR haze are solved per (band, Gauss-point) with a band-integrated
+Planck source.
+
+\paragraph{Shortwave.} Methane opacity uses the same visible CH$_4$ $k$-table as
+the reference Fortran model ($42$ bands $\times$ $10$ Gauss points, on a
+$20\times10$ pressure--temperature grid). Per layer the gas optical depth is
+$\tau = k(P,T)\,u$ with $u$ the CH$_4$ column abundance in km-amagat; all $420$
+(band, Gauss-point) sub-intervals are solved in a single multi-wave DISORT call
+and recombined by the Gauss weights, with the per-band solar flux integrated
+from the Houghton spectrum and scaled to Titan's orbit ($9.5$\,AU, $\sum$ bands
+$=\SI{15.1}{W.m^{-2}}$; diurnally-averaged $\cos\theta=1/\pi$). The CH$_4$
+windows let sunlight through to the surface while the bands absorb aloft;
+CH$_4$ alone absorbs $\approx\!\SI{1.4}{W.m^{-2}}$, peaking at
+$\sim\!14\,\mathrm{K}$ per Titan day in the stratosphere.
+
+\paragraph{Relaxation to equilibrium.} The \emph{layer-mean} temperature is
+relaxed toward radiative--convective equilibrium: each iteration runs both
+bands, nudges the layer temperatures along the net heating rate (under-relaxed;
+the layer-mean state is in 1:1 correspondence with the per-layer heating,
+avoiding the level$\leftrightarrow$layer aliasing that otherwise seeds a
+grid-scale zig-zag), then applies a convective adjustment to a critical lapse
+rate ($\sim\!1\,\mathrm{K\,km^{-1}}$). Cold space is imposed as the top boundary
+(a thermal emission temperature of $2.7\,\mathrm{K}$, not the atmosphere's top
+temperature); without this the column spuriously absorbs downwelling longwave
+and overheats. The two layers nearest the $1$\,Pa model top retain a
+$\pm$few-K\,day$^{-1}$ residual zig-zag (a known boundary artifact, excluded
+from convergence metrics).
+
+\section{Cross-comparison with the reference model: per-source opacity breakdown}
+\label{si:opacity}
+
+To localise the residual heating-rate differences between the DISORT
+implementation and the reference Fortran model we compare the two engines'
+optical depth \emph{source by source} at the same state (the reference's
+converged $P(T)$ profile and the shared prescribed haze), accumulating each
+contribution---haze, CH$_4$ shortwave gas, IR gas lines (CH$_4$/C$_2$H$_2$/%
+C$_2$H$_6$/C$_2$H$_4$/HCN), Rayleigh, and CIA---separately from the top down
+(Fig.~\ref{fig:opacity}). For this we enabled the reference model's
+per-band Gauss-weighted gas-opacity output, so even the correlated-$k$ gas can
+be compared directly rather than inferred.
+
+The prescribed haze, which both models read from the same observational tables,
+interpolates identically: at matched band centres the per-band optical depth
+agrees to machine precision (ratio $1.000$) in both the shortwave and the
+longwave, at every level. The CH$_4$ correlated-$k$ gas likewise agrees at the
+column scale (shortwave $1.03$, longwave $1.08$). The one source that genuinely
+differed is the collision-induced absorption (CIA), which lives in the deep
+atmosphere ($P\gtrsim10\,\mathrm{kPa}$): there the breakdown showed our continuum
+running well above the reference's.
+
+We traced this to the CIA formulation. Our model band-averaged the HITRAN
+cross-sections and formed $\tau=\sum_\mathrm{pairs}k\,n_A n_B\,\Delta z$, whereas
+the reference evaluates a three-term exponential-sum fit to the band
+\emph{transmission}, $\mathcal{T}=\sum_i a_i\exp(-k_i u)$ with $\tau=-\ln\mathcal
+{T}$ and absorber amount $u=n_1 n_2\,\Delta z$---a form that captures the sub-band
+absorber-amount nonlinearity a single band-averaged cross-section cannot. On the
+shared Titan far-IR continuum the band-averaged cross-section overestimated the
+optical depth by $\sim\!1.75\times$. Adopting the reference's exponential-sum
+fits (reading the same transmission tables) brings the two continua into
+agreement to a few percent through the bulk of the deep atmosphere
+(Fig.~\ref{fig:opacity}, bottom row; the per-band cumulative-$\tau$ ratio is
+$1.00$ at $30\,\mathrm{kPa}$, with the residual confined to the single lowest
+layer). With this, \emph{every} opacity source---haze, CH$_4$, gas lines,
+Rayleigh, and CIA---matches the reference to within a few percent through the
+column, so the engines now differ only in the radiative-transfer solution
+itself, not in the optical depths fed to it.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/opacity_breakdown.png}
+  \caption{Cumulative optical depth from the top of atmosphere, by source, for
+    our DISORT optics (solid) and the reference Fortran model (dashed), at the
+    same state. Top row: shortwave (haze, CH$_4$ gas, Rayleigh) in three
+    representative bands; bottom row: longwave (haze, gas lines, CIA). The shaded
+    band marks the mid-altitude $10$--$100\,\mathrm{Pa}$ region. The haze
+    dominates the mid-atmosphere and matches closely; the CIA continuum (bottom
+    row, deep atmosphere) matches once our model adopts the reference's
+    exponential-sum transmission fits in place of band-averaged HITRAN
+    cross-sections.}
+  \label{fig:opacity}
+\end{figure}
+
+\section{Microphysics: governing boundary-value problem and solvers}
+\label{si:bvp}
+
+Working with the aggregate number density $n$ and the monomer-volume density
+$M\equiv n\Nbar$ (mass $=m_1 M$, $m_1=\rho_p\tfrac{4}{3}\pi d^3$), the steady 1-D
+balance for any density $q$ with downward settling speed $\omega$ and eddy
+diffusivity $K(z)$ reads $\dd_z[\omega q + K\,\dd_z q]=L_q-S_q$, where
+$\omega q + K\,\dd_z q$ is the downward flux, $S_q$ the production, and $L_q$ the
+loss. Applied to the two densities,
+\begin{align}
+  \frac{\dd}{\dd z}\!\left[\omega(\Nbar,z)\,M + K\,\frac{\dd M}{\dd z}\right]
+    &= -\,S_M(z),
+    \label{eq:bvpM}\\
+  \frac{\dd}{\dd z}\!\left[\omega(\Nbar,z)\,n + K\,\frac{\dd n}{\dd z}\right]
+    &= \tfrac{1}{2}\,\beta(\Nbar,z)\,n^2 - S_n(z).
+    \label{eq:bvpn}
+\end{align}
+Equation~\eqref{eq:bvpM} expresses monomer conservation: coagulation merges
+particles but preserves total monomer volume, so the only monomer source is
+production. Equation~\eqref{eq:bvpn} expresses Smoluchowski number loss---each
+collision removes one aggregate at rate $\tfrac{1}{2}\beta n^2$---plus seeding.
+With $\Nbar=M/n$ and $\Df=\Df(\Nbar)$, this is a coupled two-point
+boundary-value problem for $M(z),n(z)$. The production source is a Gaussian
+\citep[Eq.~5]{deTrenquelleon2025},
+\begin{equation}
+  S_M(z)=\frac{\Qprod}{m_1}\,G(z),\quad
+  G(z)=\frac{1}{\sqrt{2\pi}\,\Delta z}\exp\!\left[-\frac{(z-z_0)^2}{2\,\Delta z^2}\right],
+  \quad S_n=\frac{S_M}{N_{\rm seed}},
+  \label{eq:source}
+\end{equation}
+with $N_{\rm seed}=(r_p/d)^3$. Boundary conditions are vanishing densities at the
+model top and settling-only deposition ($\dd_z M=\dd_z n=0$) at the surface.
+A first integral of \eqref{eq:bvpM} well below the source recovers the constant
+downward monomer flux $\omega M + K\,\dd_z M = P$, with $P=\Qprod/m_1$.
+The monodisperse system is solved by collocation (\texttt{solve\_bvp}) with the
+$K\to0$ master-ODE profile as the initial guess.
+
+\paragraph{Bimodal (polydisperse) transport.} The bimodal two-moment state
+$(M_0^S,M_3^S,M_0^F,M_3^F)$ obeys the same balance per moment, with
+moment-specific settling velocities $\langle\omega\rangle_k$ (gravitational
+sorting) and the quadrature coagulation tendencies as local sources.  This
+stiff four-field system defeats collocation; it is solved instead by
+\emph{pseudo-time relaxation}: a finite-volume semi-discretization (upwind
+settling, centred eddy diffusion, closed top, settling-only deposition at the
+surface) marched to steady state with a banded stiff integrator (LSODA),
+starting from the $K\to0$ profile, until the deposition flux balances the
+column production and the profile is stationary.
+
+\section{Anatomy of the lab-tholin strong-feedback regime}
+\label{si:labtholin}
+
+Supporting detail for \S\ref{sec:coupling-diag}.  \emph{Microphysics
+smoothness}: sweeping a family of input temperature profiles (stratopause
+$128$--$225\,\mathrm{K}$) and recomputing the haze for each, the column optical
+depth, the $\tau$-weighted centroid pressure, and the haze mass column vary
+continuously---largest adjacent change $\le3.5\%$, with no feature at the
+coupled transition near $137\,\mathrm{K}$ (Fig.~\ref{fig:transition}).  The
+centroid rises smoothly with temperature ($1714\to770\,\mathrm{Pa}$ across the
+sweep): a warmer stratosphere lifts the absorbing haze, which absorbs higher
+and warms further.  \emph{Radiative multiplicity}: at the frozen
+transition-state haze the warm/cool-start equilibria separate by
+$17\,\mathrm{K}$ at the stratopause ($158$ vs $141\,\mathrm{K}$; up to
+$31\,\mathrm{K}$ deeper in the profile), the separation stable as the heating
+residual falls to $0.3\,\mathrm{K\,day^{-1}}$ and reproduced in both the
+Fortran and DISORT engines.  Near the transition the coupled map is steep: a
+$\sim\!1\,\mathrm{K}$ input change flips the output by $\sim\!48\,\mathrm{K}$.
+A caveat found while converging the branch-tracking chains: the radiatively
+sluggish lower stratosphere ($\sim\!50$--$200\,\mathrm{km}$) retains
+$10$--$18\,\mathrm{K}$ of initial-condition memory at the standard residual
+tolerance; a tightened-tolerance relaxation drifts it monotonically toward the
+common state with no barrier---convergence memory, not a second attractor.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/transition_diagnosis.png}
+  \caption{Microphysics haze response to the input temperature (lab-tholin
+    configuration). Haze column optical depth (left), $\tau$-weighted centroid
+    pressure (centre), and cumulative $\tau(p)$ (right) all vary smoothly across
+    the coupled transition (shaded, $\sim\!137\,\mathrm{K}$): the
+    $T\!\to\!$haze map has no cliff, so the multiplicity is radiative, not
+    microphysical.}
+  \label{fig:transition}
+\end{figure}
 
 \section{Baseline parameters}
-\label{sec:params}
+\label{si:params}
 
 \begin{table}[t]
   \centering
@@ -912,26 +983,5 @@ radiation$\leftrightarrow$chemistry$\leftrightarrow$microphysics feedback.
     \bottomrule
   \end{tabular}
 \end{table}
-
-\paragraph{Status and approximations.}
-The monodisperse closure replaces the true size spread by $\Nbar$ and evaluates
-the kernel at the mean size; real distributions coagulate somewhat faster, an
-$O(1)$ correction absorbable into a prefactor on $\beta$ and calibratable against
-a full population-balance run. The spherical$\to$fractal switch at $\Nbar=1$ is
-treated as instantaneous. Background profiles $\eta(T)$, $\lambda(T,P)$ are taken
-from $\mathrm{N_2}$ kinetic theory, $g(z)$ from Titan gravity, and the eddy
-diffusivity $K(z)$ from a standard Titan profile \citep{Vuitton2019}. Charge
-inhibition (a multiplicative factor on $\beta$) is deferred. With Steps~1--3
-implemented, the haze IR opacity calibrated, and the coupled fixed point
-converged by the branch-tracking solve (benign and monostable at
-$\sim\!194\,\mathrm{K}$, \S\ref{sec:coupling-cont}), the immediate next steps are
-trimming the remaining $\sim\!11\,\mathrm{K}$ overshoot (the visible-opacity
-excess aloft; charge inhibition and eddy diffusion in the bimodal transport act
-on the same profile) and the Step~4 photochemical production
-(Sec.~\ref{sec:photochem}); a full population balance is the main physics
-refinement thereafter.
-
-\bibliographystyle{plainnat}
-\bibliography{refs}
 
 \end{document}

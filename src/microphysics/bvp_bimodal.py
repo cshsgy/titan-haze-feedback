@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.integrate import solve_bvp
+from scipy.integrate import odeint, solve_bvp
 
 from .atmosphere import Atmosphere
 from .constants import AerosolParams, DEFAULT
@@ -37,6 +37,90 @@ from . import coagulation as cg
 from .scaling_law_bimodal import solve_bimodal_kzero
 
 _FLOOR = 1e-30
+
+
+def solve_bimodal_relax(atm: Atmosphere | None = None, params: AerosolParams = DEFAULT,
+                        sigma_s: float = 1.5, sigma_f: float = 2.0,
+                        n_nodes: int = 150, n_quad: int = 10,
+                        z_top: float | None = None, t_end: float = 1.0e9,
+                        rtol: float = 1e-6) -> BimodalBVPResult:
+    """Bimodal eddy-diffusion steady state by pseudo-time relaxation.
+
+    Method of lines for dM/dt = -dF/dz + S with the downward flux
+    F = <w>_X M + K dM/dz per moment, upwind settling (mass falls from the node
+    above), centred eddy diffusion, the Gaussian production into the S mode, and
+    the quadrature coagulation tendencies (piece 1b) as local sources.  The
+    semi-discrete system (4 moments x n_nodes, interleaved -> bandwidth 7) is
+    marched to steady state with banded LSODA; the K->0 master-ODE profile is
+    the initial condition, so the relaxation only has to supply the (modest)
+    eddy correction.  Closed top, settling-only deposition at the surface.
+
+    Steady-state check: the result is converged when the profile at t_end/3
+    matches t_end (max rel change in M3S+M3F reported in ``message``).
+    """
+    atm = atm or Atmosphere.titan_reference()
+    p = params
+    z_top = z_top if z_top is not None else p.z0 + 3.0 * p.dz
+    z = np.linspace(0.0, z_top, n_nodes)
+    dz = z[1] - z[0]
+    K_face = atm.K(0.5 * (z[1:] + z[:-1]))               # (n-1,) faces i+1/2
+    pM0S, pM3S = _prod(z, p)
+
+    # K->0 initial condition
+    km = solve_bimodal_kzero(atm, p, sigma_s, sigma_f, n_out=max(n_nodes, 200),
+                             n_quad=n_quad)
+    zk = km.z[::-1]
+    def ic(field):
+        f = np.interp(z, zk, field[::-1])
+        return np.where(z <= p.z0 + 2.5 * p.dz, np.maximum(f, _FLOOR), _FLOOR)
+    y0 = np.empty((n_nodes, 4))
+    y0[:, 0], y0[:, 1] = ic(km.M0S), ic(km.M3S)
+    y0[:, 2], y0[:, 3] = ic(km.M0F), ic(km.M3F)
+
+    def rhs(y, _t):
+        M = np.maximum(y.reshape(n_nodes, 4), _FLOOR)
+        M0S, M3S, M0F, M3F = M[:, 0], M[:, 1], M[:, 2], M[:, 3]
+        w0S, w3S = mm.settling_velocities(M0S, M3S, sigma_s, 3.0, z, atm, p)
+        w0F, w3F = mm.settling_velocities(M0F, M3F, sigma_f, p.D_f, z, atm, p)
+        d0S, d3S, d0F, d3F = cg.coag_tendencies(M0S, M3S, M0F, M3F, z, atm, p,
+                                                sigma_s, sigma_f, n=n_quad)
+        dy = np.empty_like(M)
+        for c, (Mc, wc, src) in enumerate((
+                (M0S, w0S, d0S + pM0S), (M3S, w3S, d3S + pM3S),
+                (M0F, w0F, d0F), (M3F, w3F, d3F))):
+            # downward flux at faces i+1/2 (between i and i+1), i=0..n-2:
+            # F_down = w M + K dM/dz (settling upwinded from the node above;
+            # diffusion centred) -- same convention as the solve_bvp stub.
+            F = wc[1:] * Mc[1:] + K_face * (Mc[1:] - Mc[:-1]) / dz
+            div = np.empty(n_nodes)
+            div[:-1] = F                                    # gain at node i from above
+            div[-1] = 0.0                                   # closed top
+            div[1:] -= F                                    # loss at node i+1
+            div[0] -= wc[0] * Mc[0]                         # surface deposition
+            dy[:, c] = div / dz + src
+        return dy.ravel()
+
+    t = np.array([0.0, t_end / 3.0, t_end])
+    # per-component absolute tolerance: resolve each moment to 1e-8 of its IC
+    # peak (an atol near the 1e-30 floor would force LSODA to track the empty
+    # region's dynamics and stall)
+    atol = (1e-8 * y0.max(axis=0))[None, :].repeat(n_nodes, axis=0).ravel()
+    sol = odeint(rhs, y0.ravel(), t, ml=7, mu=7, rtol=rtol, atol=atol,
+                 mxstep=200000)
+    Mm = np.maximum(sol[-1].reshape(n_nodes, 4), _FLOOR)
+    Mh = np.maximum(sol[-2].reshape(n_nodes, 4), _FLOOR)
+    tot_m, tot_h = Mm[:, 1] + Mm[:, 3], Mh[:, 1] + Mh[:, 3]
+    big = tot_m > 1e-6 * tot_m.max()
+    drift = float(np.max(np.abs(tot_m - tot_h)[big] / tot_m[big]))
+    M0S, M3S, M0F, M3F = Mm[:, 0], Mm[:, 1], Mm[:, 2], Mm[:, 3]
+    return BimodalBVPResult(
+        z=z, M0S=M0S, M3S=M3S, M0F=M0F, M3F=M3F,
+        r0S=mm.mean_radius(M0S, M3S), r0F=mm.mean_radius(M0F, M3F),
+        rho_h=p.rho_p * (4.0 * np.pi / 3.0) * (M3S + M3F),
+        atm=atm, params=p, sigma_s=sigma_s, sigma_f=sigma_f,
+        success=drift < 0.02,
+        message=f"relaxed to t={t_end:.1e} s; steady-state drift {drift:.2%} "
+                f"over the last 2/3 of the march")
 
 
 @dataclass
