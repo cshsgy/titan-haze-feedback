@@ -140,12 +140,18 @@ At `sigma_S=1.5, sigma_F=2.0` (K->0 profiles):
     `scripts/check_bimodal_converge.py`). sigma_F-independent (same 8 K at 1.2 and 2.0).
 
   So the consistent (transition-state) comparison gives a *weak residual*
-  bistability, ~half the monodisperse 17 K stratopause split (31 K profile), with
-  the warm branch cooled 158->149 K. Polydispersity pulls the feedback gain back
-  toward unity but does not cleanly cross below 1; the wide, robust monodisperse
-  bistability is largely a single-size artifact. A definitive yes/no on the
-  residual needs the deferred continuation solve of T=F(haze(T)).
+  **frozen-haze** bistability, ~half the monodisperse 17 K stratopause split
+  (31 K profile), with the warm branch cooled 158->149 K. The wide, robust
+  monodisperse multiplicity is largely a single-size artifact.
   Paper: Fig 6 (`writing/figs/bistable_states.png`), sec:coupling-result/-poly.
+
+- **SETTLED by the continuation solve** (`scripts/continuation_solve.py`, paper
+  sec:coupling-cont): the **coupled** system T=F(haze(T)) is **monostable for
+  every closure** — all six branch-tracked chains ({mono, sf1.2, sf2.0} x
+  {warm, cool}) converge to the same fixed point (stratopause 141.7-143.1 K,
+  warm-cool <=1 K). The haze response is net stabilizing (a warm stratosphere's
+  haze admits no warm equilibrium); the frozen-haze multiplicity above does not
+  survive coupling. See `docs/step3_coupling.md` "RESOLVED" section.
 
 ## Open parameters (need values)
 

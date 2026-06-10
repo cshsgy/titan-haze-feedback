@@ -167,9 +167,33 @@ result (Titan's haze feedback is strong enough to be bistable in this model).
 above is for the **monodisperse** closure. Repeating the fixed-haze test with the
 bimodal (polydisperse) haze gives a converged warm−cool split of only ~8 K
 (stratopause; 17 K monodisperse) at the transition-state haze and ~3–4 K at the
-nominal haze (`scripts/bistable_states.py`, paper Fig. 6): the bistability is
-**strongly suppressed but not eliminated** — largely a single-size artifact, with
-at most a weak residual multiplicity.
+nominal haze (`scripts/bistable_states.py`, paper Fig. 6): the **frozen-haze**
+multiplicity is **strongly suppressed but not eliminated** — largely a
+single-size artifact.
+
+## RESOLVED: the coupled system is monostable (continuation solve)
+
+The deferred branch-tracking solve is done (`scripts/continuation_solve.py`,
+`scripts/plot_continuation.py`, paper sec:coupling-cont +
+`writing/figs/continuation_branches.png`). Damped iteration
+`T_{k+1} = 0.7 T_k + 0.3 F(haze(T_k))` with the haze recomputed every pass and
+the inner RT **initialized from the current iterate** (branch-continuous), fp
+tolerance max|F(T)−T| < 1 K, DISORT, 100 layers. Six chains
+({mono, bi σ_F=1.2, bi σ_F=2.0} × {warm, cool}) ALL converge to the **same**
+coupled fixed point: stratopause 141.7–143.1 K, warm−cool ≤1 K per closure —
+**monostable even for the monodisperse haze**. Mechanism: the haze a warm
+stratosphere produces admits no warm RT equilibrium (F of the warm start lands
+at ~143 K even warm-initialized) — the haze response is net stabilizing and
+removes the warm branch; the frozen-haze bistability does not survive coupling.
+The naive loop's oscillation = overshoot of a steep (|slope|≫1) single-valued
+map, not two coupled attractors.
+
+Caveats: (i) the radiatively-stiff 50–200 km band keeps 10–18 K of
+initial-condition memory at tol 0.3 K/day; a tightened-tol (0.05) relax drifts
+it monotonically toward the cool-tracked state with no barrier
+(`scripts/drift_test.py`: mono 90-km gap 7.5→0.9 K) — convergence memory, not a
+second attractor. (ii) The fixed point (~142 K) is well below the observed-like
+~183 K — the Step-2 haze-vertical-distribution gap, not the solve.
 
 ## Risks / decisions to make
 

@@ -57,22 +57,22 @@ continuum lower atmosphere. Solving the full eddy-diffusion problem reproduces
 the haze extinction scale height of Tomasko et al. (2008)
 ($64$ vs.\ $65\,\mathrm{km}$) and a sub-micron characteristic radius consistent
 with de Trenquell\'eon et al. (2025). This law is inexpensive enough to embed
-inside the radiative iteration, closing the feedback loop. Doing so reveals the
-central physical result: the coupled one-dimensional system is \emph{bistable}.
-The strongly-absorbing haze is smoothly mobile in altitude with temperature
-(warmer stratosphere $\Rightarrow$ higher haze $\Rightarrow$ more absorption
-aloft), and this positive feedback gives the radiative--convective system two
-stable equilibria---a warm ($\sim\!183\,\mathrm{K}$) and a cool
-($\sim\!131\,\mathrm{K}$) stratopause---between which naive iteration oscillates.
-We show the bistability is radiative, not microphysical (the temperature-to-haze
-map is smooth, while the radiative transfer is genuinely multi-valued for a fixed
-haze, confirmed in two independent engines), but \emph{not robust}: a
-polydisperse (bimodal, size-resolved) haze, whose broad aggregate distribution
-sheds mass faster and thins the haze, roughly halves the warm--cool split (to
-$\sim\!8\,\mathrm{K}$, and to $\sim\!3\,\mathrm{K}$ near the nominal operating
-point) and pulls the feedback gain back toward unity.  The wide two-equilibria
-behaviour is thus largely an artifact of the single-size idealization---a caution
-against inferring strong feedbacks from monodisperse microphysics.
+inside the radiative iteration, closing the feedback loop. Doing so reveals a
+strong absorbing-haze feedback with a sharp, deceptive signature: naive coupled
+iteration never settles, oscillating between a warm ($\sim\!183\,\mathrm{K}$) and
+a cool ($\sim\!131\,\mathrm{K}$) stratopause, and the radiative transfer is
+genuinely multi-valued when the haze is held \emph{fixed} (two
+radiative--convective equilibria $17\,\mathrm{K}$ apart, confirmed in two
+independent engines; a realistic polydisperse haze halves this frozen-haze
+multiplicity).  A damped branch-tracking (continuation) solve of
+$T=F(\mathrm{haze}(T))$, however, shows the \emph{coupled} system is
+\emph{monostable}: warm- and cool-tracked branches converge to the same fixed
+point (stratopause $142.5\pm0.5\,\mathrm{K}$, agreeing to $\lesssim\!1\,\mathrm{K}$)
+for the monodisperse and the polydisperse closures alike.  The microphysical haze
+response is net stabilizing---a warm stratosphere produces a haze that admits no
+warm equilibrium---so the frozen-haze bistability does not survive coupling, and
+the loop's oscillation is overshoot of a steep ($|$gain$|>1$) but single-valued
+map, a caution for haze--climate iterations that hold the aerosol fixed.
 \end{abstract}
 
 \section{Introduction}
@@ -123,8 +123,9 @@ The program proceeds in four stages.
     note.
   \item[Step 3 --- Coupled iteration.] Map the microphysical moments to layer
     optical properties, feed the RT engine, update $T(z)$, and iterate; diagnose
-    the feedback. The coupled system proves \emph{bistable}
-    (Sec.~\ref{sec:coupling}).
+    the feedback. The frozen-haze radiative transfer proves \emph{bistable}, but
+    a branch-tracking solve shows the coupled system is \emph{monostable}: the
+    haze response removes the warm equilibrium (Sec.~\ref{sec:coupling}).
   \item[Step 4 --- Photochemistry.] Promote the imposed haze production rate to
     an output of a photochemical module, closing the
     radiation$\leftrightarrow$chemistry$\leftrightarrow$microphysics loop
@@ -655,8 +656,11 @@ apart (and up to $31\,\mathrm{K}$ apart deeper in the profile); the coupled loop
 oscillation is the iteration hopping between these two attractors. With the
 \emph{polydisperse} (bimodal) haze of \S\ref{sec:coupling-poly} the same two starts
 settle far closer---a $149$ versus $142\,\mathrm{K}$ stratopause, $\sim\!8\,\mathrm{K}$
-apart---so the bistability is strongly suppressed though, as we show below, not
-entirely removed.
+apart---so the frozen-haze multiplicity is strongly suppressed though not entirely
+removed.  Both of these are \emph{fixed-haze} statements; the fate of the
+multiplicity in the fully coupled system, where the haze responds to the
+temperature, is settled by the branch-tracking solve of
+\S\ref{sec:coupling-cont}: it does not survive.
 
 \begin{figure}[t]
   \centering
@@ -713,11 +717,11 @@ radiative feedback}, not a microphysics regime change or a coupling artifact: th
 strongly-absorbing haze, smoothly mobile in altitude with temperature, gives the
 one-dimensional radiative--convective system two stable states with gain $>1$
 between them --- the absorbing-aerosol multiple-equilibria mechanism, here driven
-self-consistently by the aerosol microphysics. A single converged branch (and the
-feedback gain along it) therefore requires a continuation or damped-Newton solve
-of $T=F(\text{haze}(T))$ that tracks one attractor rather than fixed-point
-iteration; the existence of the two branches is itself the principal Step-3
-result.
+self-consistently by the aerosol microphysics. Converging the coupled system
+therefore requires a solve that tracks one attractor rather than naive
+fixed-point iteration; we perform that damped branch-tracking (continuation)
+solve in \S\ref{sec:coupling-cont}, with an outcome the frozen-haze analysis
+cannot anticipate: the multiplicity does not survive the haze response.
 
 \subsection{Polydispersity strongly suppresses the bistability}
 \label{sec:coupling-poly}
@@ -756,9 +760,9 @@ behaviour of the monodisperse model---its over-concentrated opacity at altitude
 driving the feedback gain well above one---is thus largely an artifact of the
 single-size idealization: a realistic size distribution sheds mass faster, thins
 and lifts the haze less, and pulls the gain back toward unity.  This is a caution
-against reading strong nonlinear feedbacks out of monodisperse microphysics, while
-leaving open whether a weak residual multiplicity persists---a question the
-deferred continuation solve of $T=F(\mathrm{haze}(T))$ would settle definitively.
+against reading strong nonlinear feedbacks out of monodisperse microphysics.
+Whether even the weak residual multiplicity matters for the coupled system is
+settled next: it does not.
 
 \begin{figure}[t]
   \centering
@@ -774,6 +778,77 @@ deferred continuation solve of $T=F(\mathrm{haze}(T))$ would settle definitively
     size distribution strongly suppresses the absorbing-haze bistability, leaving
     at most a weak residual.}
   \label{fig:sigmaF}
+\end{figure}
+
+\subsection{The coupled fixed point: the bistability does not survive the haze
+response}
+\label{sec:coupling-cont}
+
+The preceding tests freeze the haze; the coupled question is whether
+$T=F(\mathrm{haze}(T))$ itself has one fixed point or two.  We answer it with the
+deferred branch-tracking solve: a damped iteration
+\[
+  T_{k+1} \;=\; (1-\alpha)\,T_k \;+\; \alpha\,F\!\big(\mathrm{haze}(T_k)\big),
+  \qquad \alpha=0.3,
+\]
+in which the haze is recomputed from the current iterate every pass (full
+coupling) and---critically---the inner radiative--convective relaxation is
+\emph{initialized from the current iterate}, so that where the RT is multi-valued
+the chain stays on the branch continuously connected to its start.  A converged
+chain satisfies $\max_z|F(T)-T|<1\,\mathrm{K}$: a genuine coupled fixed point on
+its branch.  We run six chains (DISORT engine, 100 layers): warm and cool starts
+for the monodisperse haze and for the bimodal haze at $\sigma_F=1.2$ and $2.0$.
+
+All six converge to the \emph{same} fixed point (Fig.~\ref{fig:continuation}):
+stratopause $141.7$--$143.1\,\mathrm{K}$, with the warm- and cool-tracked
+branches agreeing to $\lesssim\!1\,\mathrm{K}$ for every closure
+(monodisperse $142.5$ vs $141.7\,\mathrm{K}$; $\sigma_F=1.2$: $143.1$ vs
+$142.1$; $\sigma_F=2.0$: $143.0$ vs $142.0$).  The coupled system is
+\emph{monostable}---even with the monodisperse haze whose frozen-haze RT is
+robustly bistable.  The mechanism is visible in the warm chains' histories: from
+the first pass, the haze generated by a warm stratosphere admits \emph{no} warm
+radiative equilibrium ($F$ of the warm state lands at $\sim\!143\,\mathrm{K}$
+even with the RT initialized warm).  The microphysical response---a warmer
+stratosphere lifts the haze and thins its deep opacity---removes the warm branch
+rather than reinforcing it: the haze feedback is net \emph{stabilizing} at the
+fixed point, and the frozen-haze multiplicity of
+\S\ref{sec:coupling-diag}--\ref{sec:coupling-poly} is a property of the frozen
+subsystem only.  The naive loop's warm$\leftrightarrow$cool oscillation
+(\S\ref{sec:coupling-result}) is then overshoot of a steeply decreasing,
+single-valued composite map ($|$slope$|\gg1$ through the transition), not hopping
+between two coupled attractors---the warm states it visits are images
+$F(\mathrm{haze}(T_{\rm cool}))$, not self-consistent states.
+
+Two caveats.  First, the radiatively sluggish lower stratosphere
+($\sim\!50$--$200\,\mathrm{km}$) equilibrates far more slowly than the
+haze-dominated upper column; at the $0.3\,\mathrm{K\,day^{-1}}$ residual
+tolerance the warm- and cool-tracked chains retain up to
+$10$--$18\,\mathrm{K}$ of initial-condition memory there (the cool chain barely
+moves from its start in that band), so the uniqueness statement is sharpest
+where the feedback operates ($P\lesssim10^3\,\mathrm{Pa}$, the haze and
+stratopause region).  Relaxing the warm-tracked state at a tightened tolerance
+($0.05\,\mathrm{K\,day^{-1}}$) drifts this band \emph{monotonically toward} the
+cool-tracked state with no sign of a barrier (the monodisperse $90$-km gap
+shrinks $7.5\to0.9\,\mathrm{K}$) while the stratopause holds at
+$142.3$--$142.6\,\mathrm{K}$: slow convergence memory, not a second attractor.
+Second, the fixed point sits at a
+$\sim\!142\,\mathrm{K}$ stratopause, well below the $\sim\!183\,\mathrm{K}$
+prescribed-haze (observed-like) state---the known Step-2 deficiency in the haze
+vertical distribution, not a property of the solve.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figs/continuation_branches.png}
+  \caption{Damped branch-tracking (continuation) solve of the coupled fixed
+    point $T=F(\mathrm{haze}(T))$, for the monodisperse haze (left) and the
+    bimodal haze at $\sigma_F=1.2$ (centre) and $2.0$ (right).  Top: the
+    converged warm-tracked (red) and cool-tracked (blue) coupled fixed points
+    coincide to $\lesssim\!1\,\mathrm{K}$ at the stratopause for every closure:
+    the coupled system is monostable.  Bottom: stratopause history of the damped
+    iterations (circles: the iterate $T_k$; squares: its image $F(T_k)$); the
+    warm chains' images drop to $\sim\!143\,\mathrm{K}$ from the first pass---the
+    haze a warm stratosphere produces admits no warm equilibrium.}
+  \label{fig:continuation}
 \end{figure}
 
 \section{Photochemistry in the loop (Step 4)}
@@ -828,9 +903,11 @@ treated as instantaneous. Background profiles $\eta(T)$, $\lambda(T,P)$ are take
 from $\mathrm{N_2}$ kinetic theory, $g(z)$ from Titan gravity, and the eddy
 diffusivity $K(z)$ from a standard Titan profile \citep{Vuitton2019}. Charge
 inhibition (a multiplicative factor on $\beta$) is deferred. With Steps~1--3
-implemented and the bistable feedback diagnosed, the immediate next steps are a
-continuation/damped-Newton solve to trace a single branch and quantify the
-feedback gain along it, and the Step~4 photochemical production
+implemented, the feedback diagnosed, and the coupled fixed point converged by the
+branch-tracking solve (monostable, \S\ref{sec:coupling-cont}), the immediate next
+steps are quantifying the feedback gain along the converged branch, closing the
+$\sim\!40\,\mathrm{K}$ gap to the observed stratopause (the Step-2 haze vertical
+distribution), and the Step~4 photochemical production
 (Sec.~\ref{sec:photochem}); charge inhibition and a full population balance are
 the main physics refinements thereafter.
 

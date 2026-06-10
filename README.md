@@ -225,10 +225,18 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       radiative–convective equilibria, 17 K apart at the stratopause / up to 31 K
       through the profile, engine-independent) — a real absorbing-haze radiative
       feedback (haze rises with T → absorbs higher → warmer), not a microphysics
-      or mapping artifact. A converged branch needs harder damping / a
-      continuation method (see `docs/step3_coupling.md`,
+      or mapping artifact (see `docs/step3_coupling.md`,
       `writing/figs/{bistable_states,transition_diagnosis}.png`). The earlier
       top-oscillation blocker is resolved (per-layer step cap, ~24→2.5 K).
+      **Resolved by the continuation solve** (`scripts/continuation_solve.py`,
+      paper §coupling-cont): the **coupled** system is **monostable** — damped
+      branch-tracking (haze recomputed each pass, RT initialized from the current
+      iterate) converges warm- and cool-tracked chains to the *same* fixed point
+      (stratopause ~142.5±0.5 K, split ≤1 K) for **every** closure, monodisperse
+      included. The haze response is net stabilizing (a warm stratosphere's haze
+      admits no warm equilibrium): the frozen-haze bistability does not survive
+      coupling; the loop's oscillation was overshoot of a steep single-valued
+      map.
 - [x] Step 3 follow-up — **polydisperse microphysics**
       (`src/microphysics/{moments,coagulation,scaling_law_bimodal}.py`,
       `docs/polydisperse_scheme.md`): bimodal 2-moment log-normal scheme
@@ -237,11 +245,13 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       sorting thins the haze steeply with the aggregate width σ_F (visible column
       τ 8.4 monodisperse → 6.2 at σ_F=1.2 → 1.9 at σ_F=2.0; observed τ≈8 needs
       σ_F≲1.2 — a constraint on Titan's aggregate spread;
-      `scripts/sigma_f_sweep.py`). (ii) The bistability is **strongly suppressed
-      but not eliminated**: the consistent transition-state-haze test gives a
-      converged ~8 K warm−cool split (vs 17 K monodisperse), ~3–4 K at the
-      nominal haze — the wide two-equilibria behaviour is largely a single-size
-      artifact (`scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`,
-      paper Fig. 6). The 8-field eddy-diffusion BVP is deferred (needs a
-      relaxation solver; `bvp_bimodal.py`).
+      `scripts/sigma_f_sweep.py`). (ii) The **frozen-haze** bistability is
+      **strongly suppressed but not eliminated**: the consistent
+      transition-state-haze test gives a converged ~8 K warm−cool split (vs 17 K
+      monodisperse), ~3–4 K at the nominal haze — the wide two-equilibria
+      behaviour is largely a single-size artifact
+      (`scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`,
+      paper Fig. 6); and the coupled system is monostable for both closures (see
+      the continuation result above). The 8-field eddy-diffusion BVP is deferred
+      (needs a relaxation solver; `bvp_bimodal.py`).
 - [ ] Step 4 — photochemistry coupling
