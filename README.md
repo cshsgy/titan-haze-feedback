@@ -87,7 +87,8 @@ src/microphysics/       Step 2 scaling-law solver
   moments.py            polydisperse: log-normal alpha(k), moment-avg settling
   coagulation.py        polydisperse: bimodal Fuchs-kernel coag (GH quadrature)
   scaling_law_bimodal.py polydisperse: K->0 bimodal (S+F) master ODE + to_micro
-  bvp_bimodal.py        polydisperse 8-field BVP (deferred: needs relaxation solver)
+  bvp_bimodal.py        polydisperse 8-field BVP (relaxation implemented but
+                        impractically stiff; needs operator splitting)
 src/coupling/           Step 3: presc_haze.py writes Fortran prescribed-haze tables
 src/example_bowen_fort/ Step 1 RT engine: reference TAM-lineage Fortran model
 src/rt/                 DISORT cross-check of Step 1 (needs pydisort/.rtenv)
@@ -258,6 +259,9 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       suppressed by polydispersity (~8 K vs 17 K mono;
       `scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`); with
       the obs-calibrated LW there is no robust multiplicity for either closure.
-      The 8-field eddy-diffusion BVP is deferred (needs a relaxation solver;
-      `bvp_bimodal.py`).
+      The 8-field eddy-diffusion BVP: a MOL+banded-LSODA pseudo-time relaxation
+      is implemented (`solve_bimodal_relax`) but impractically stiff even at
+      60 nodes; operator splitting (implicit transport + sub-cycled coag) is
+      the identified path. Bimodal results use K→0 profiles (eddy correction
+      bounded by the mono case, H 54→64 km).
 - [ ] Step 4 — photochemistry coupling

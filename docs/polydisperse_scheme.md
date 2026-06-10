@@ -110,7 +110,11 @@ settling-only deposition at the surface.
    monodisperse as $\sigma\to1$; volume conserved ($\dot M_3^S+\dot M_3^F$ from
    coag $=0$); $\langle\omega\rangle_3>\langle\omega\rangle_0$.
 2. `K\to0` 4-ODE master system (initial guess).
-3. 4-field eddy-diffusion BVP (generalize `bvp.py`).
+3. 4-field eddy-diffusion BVP (generalize `bvp.py`). STATUS: solve_bvp defeated by
+   stiffness; `solve_bimodal_relax` (MOL, upwind FV, banded LSODA, chunked
+   early-stop) implemented but does not return in usable wall time even at
+   n_nodes=60/rtol=1e-4 -- operator splitting (implicit tridiagonal transport,
+   sub-cycled coagulation) is the identified path. Downstream uses K->0.
 4. Polydisperse optics (extend `aggregate_optics.py` / `optics.py`).
 5. Cross-validate (extinction scale height, sizes, S/F mass split) + re-run Step 3.
 

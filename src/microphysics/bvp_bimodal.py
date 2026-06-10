@@ -46,17 +46,24 @@ def solve_bimodal_relax(atm: Atmosphere | None = None, params: AerosolParams = D
                         rtol: float = 1e-6) -> BimodalBVPResult:
     """Bimodal eddy-diffusion steady state by pseudo-time relaxation.
 
-    Method of lines for dM/dt = -dF/dz + S with the downward flux
-    F = <w>_X M + K dM/dz per moment, upwind settling (mass falls from the node
-    above), centred eddy diffusion, the Gaussian production into the S mode, and
-    the quadrature coagulation tendencies (piece 1b) as local sources.  The
-    semi-discrete system (4 moments x n_nodes, interleaved -> bandwidth 7) is
-    marched to steady state with banded LSODA; the K->0 master-ODE profile is
-    the initial condition, so the relaxation only has to supply the (modest)
-    eddy correction.  Closed top, settling-only deposition at the surface.
+    STATUS: EXPERIMENTAL -- implemented but impractically stiff.  Method of
+    lines for dM/dt = -dF/dz + S with the downward flux F = <w>_X M + K dM/dz
+    per moment, upwind settling (mass falls from the node above), centred eddy
+    diffusion, the Gaussian production into the S mode, and the quadrature
+    coagulation tendencies (piece 1b) as local sources.  The semi-discrete
+    system (4 moments x n_nodes, interleaved -> bandwidth 7) is marched in
+    geometric pseudo-time chunks with banded LSODA from the K->0 master-ODE
+    initial profile, stopping early when chunk-to-chunk drift < 1%.
 
-    Steady-state check: the result is converged when the profile at t_end/3
-    matches t_end (max rel change in M3S+M3F reported in ``message``).
+    In practice LSODA does not return in usable wall time even at n_nodes=60,
+    n_quad=8, rtol=1e-4 (>15 min without completing the first t~1e6 s chunk):
+    the quadrature-coagulation RHS plus floor clipping appears to defeat the
+    numerically-differenced banded Jacobian.  The identified path is operator
+    splitting -- implicit tridiagonal advection-diffusion per moment +
+    sub-cycled (semi-)implicit local coagulation -- mirroring how production
+    aerosol codes treat this system.  Until then, downstream work uses the
+    K->0 bimodal profiles; the eddy correction is bounded by the monodisperse
+    case (extinction scale height 54 -> 64 km).
     """
     atm = atm or Atmosphere.titan_reference()
     p = params
@@ -100,18 +107,31 @@ def solve_bimodal_relax(atm: Atmosphere | None = None, params: AerosolParams = D
             dy[:, c] = div / dz + src
         return dy.ravel()
 
-    t = np.array([0.0, t_end / 3.0, t_end])
     # per-component absolute tolerance: resolve each moment to 1e-8 of its IC
     # peak (an atol near the 1e-30 floor would force LSODA to track the empty
     # region's dynamics and stall)
     atol = (1e-8 * y0.max(axis=0))[None, :].repeat(n_nodes, axis=0).ravel()
-    sol = odeint(rhs, y0.ravel(), t, ml=7, mu=7, rtol=rtol, atol=atol,
-                 mxstep=200000)
-    Mm = np.maximum(sol[-1].reshape(n_nodes, 4), _FLOOR)
-    Mh = np.maximum(sol[-2].reshape(n_nodes, 4), _FLOOR)
-    tot_m, tot_h = Mm[:, 1] + Mm[:, 3], Mh[:, 1] + Mh[:, 3]
-    big = tot_m > 1e-6 * tot_m.max()
-    drift = float(np.max(np.abs(tot_m - tot_h)[big] / tot_m[big]))
+    # march in geometric chunks and stop early once the volume profile is
+    # chunk-to-chunk stationary (the K->0 IC is already close, so most of the
+    # blind march to t_end is usually unnecessary)
+    times = [t_end / 81.0, t_end / 27.0, t_end / 9.0, t_end / 3.0, t_end]
+    y = y0.ravel()
+    prev = y0
+    t0 = 0.0
+    drift = np.inf
+    for tk in times:
+        sol = odeint(rhs, y, np.array([t0, tk]), ml=7, mu=7, rtol=rtol,
+                     atol=atol, mxstep=200000)
+        y, t0 = sol[-1], tk
+        Mm = np.maximum(y.reshape(n_nodes, 4), _FLOOR)
+        tot_m, tot_h = Mm[:, 1] + Mm[:, 3], prev[:, 1] + prev[:, 3]
+        big = tot_m > 1e-6 * tot_m.max()
+        drift = float(np.max(np.abs(tot_m - np.maximum(tot_h, _FLOOR))[big]
+                             / tot_m[big]))
+        prev = Mm
+        if drift < 0.01:
+            break
+    Mm = np.maximum(y.reshape(n_nodes, 4), _FLOOR)
     M0S, M3S, M0F, M3F = Mm[:, 0], Mm[:, 1], Mm[:, 2], Mm[:, 3]
     return BimodalBVPResult(
         z=z, M0S=M0S, M3S=M3S, M0F=M0F, M3F=M3F,
@@ -119,8 +139,8 @@ def solve_bimodal_relax(atm: Atmosphere | None = None, params: AerosolParams = D
         rho_h=p.rho_p * (4.0 * np.pi / 3.0) * (M3S + M3F),
         atm=atm, params=p, sigma_s=sigma_s, sigma_f=sigma_f,
         success=drift < 0.02,
-        message=f"relaxed to t={t_end:.1e} s; steady-state drift {drift:.2%} "
-                f"over the last 2/3 of the march")
+        message=f"relaxed to t={t0:.1e} s (target {t_end:.1e}); "
+                f"chunk-to-chunk drift {drift:.2%}")
 
 
 @dataclass

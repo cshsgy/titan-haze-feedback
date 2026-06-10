@@ -908,12 +908,15 @@ $K\to0$ master-ODE profile as the initial guess.
 $(M_0^S,M_3^S,M_0^F,M_3^F)$ obeys the same balance per moment, with
 moment-specific settling velocities $\langle\omega\rangle_k$ (gravitational
 sorting) and the quadrature coagulation tendencies as local sources.  This
-stiff four-field system defeats collocation; it is solved instead by
-\emph{pseudo-time relaxation}: a finite-volume semi-discretization (upwind
-settling, centred eddy diffusion, closed top, settling-only deposition at the
-surface) marched to steady state with a banded stiff integrator (LSODA),
-starting from the $K\to0$ profile, until the deposition flux balances the
-column production and the profile is stationary.
+stiff four-field system defeats collocation.  A \emph{pseudo-time relaxation}
+(finite-volume semi-discretization: upwind settling, centred eddy diffusion,
+closed top, settling-only surface deposition; marched with a banded stiff
+integrator from the $K\to0$ profile) is implemented but remains impractically
+stiff at production resolution; the identified path is operator splitting
+(implicit tridiagonal advection--diffusion, sub-cycled local coagulation).
+Bimodal results in this work therefore use the $K\to0$ profiles; the eddy
+correction they omit is bounded by the monodisperse case, where restoring
+$K(z)$ moves the extinction scale height from $54$ to $64\,\mathrm{km}$.
 
 \section{Anatomy of the lab-tholin strong-feedback regime}
 \label{si:labtholin}
