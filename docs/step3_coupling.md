@@ -171,7 +171,27 @@ nominal haze (`scripts/bistable_states.py`, paper Fig. 6): the **frozen-haze**
 multiplicity is **strongly suppressed but not eliminated** — largely a
 single-size artifact.
 
-## RESOLVED: the coupled system is monostable (continuation solve)
+## SUPERSEDED: everything above/below in this section is the LAB-THOLIN (khare LW) configuration
+
+The 40 K cold bias AND the strong-feedback regime trace to one material
+property: the RDG-IR haze used Khare lab-tholin k, which over-absorbs the
+300–900 cm⁻¹ thermal window by 20–90× vs the observational haze
+(`scripts/diagnose_tau_gap.py`, `writing/figs/tau_gap.png`). Calibrating the LW
+spectral absorptivity per unit visible extinction chi(wn,P) to the preschaze
+tables (`OpticsParams.lw_haze='obs'`, now default; commit cfa4181) gives
++53 K one-shot (141.5→194.2 K) and **transforms the coupled regime**: the
+composite map becomes nearly flat (slope ~0.1; was |slope|≫1), all six
+branch-tracked chains converge to a ~194 K stratopause (mono warm/cool split
+0.1 K; bimodal ±2–3 K, limited by an intermittent inner-RT spike near the 1 Pa
+top — rt_resid ~51 K/day passes — not a second attractor), the frozen-haze
+warm/cool splits collapse to ≤6 K of either sign, and the +11 K overshoot vs
+the 183 K prescribed-haze reference matches the model's remaining 2.6× visible
+tau excess aloft. **The haze IR/vis opacity ratio sets the feedback regime**;
+the bistability drama below is the spurious lab-tholin regime. Paper:
+sec:coupling-result/-diag/-poly (lab-tholin anatomy) + sec:coupling-cont (the
+calibration + benign regime), figs tau_gap.png + continuation_branches.png.
+
+## Lab-tholin record: the coupled system is monostable (continuation solve)
 
 The deferred branch-tracking solve is done (`scripts/continuation_solve.py`,
 `scripts/plot_continuation.py`, paper sec:coupling-cont +

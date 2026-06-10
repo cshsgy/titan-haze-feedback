@@ -226,17 +226,24 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       through the profile, engine-independent) — a real absorbing-haze radiative
       feedback (haze rises with T → absorbs higher → warmer), not a microphysics
       or mapping artifact (see `docs/step3_coupling.md`,
-      `writing/figs/{bistable_states,transition_diagnosis}.png`). The earlier
+      `writing/figs/transition_diagnosis.png`). The earlier
       top-oscillation blocker is resolved (per-layer step cap, ~24→2.5 K).
       **Resolved by the continuation solve** (`scripts/continuation_solve.py`,
       paper §coupling-cont): the **coupled** system is **monostable** — damped
-      branch-tracking (haze recomputed each pass, RT initialized from the current
-      iterate) converges warm- and cool-tracked chains to the *same* fixed point
-      (stratopause ~142.5±0.5 K, split ≤1 K) for **every** closure, monodisperse
-      included. The haze response is net stabilizing (a warm stratosphere's haze
-      admits no warm equilibrium): the frozen-haze bistability does not survive
-      coupling; the loop's oscillation was overshoot of a steep single-valued
-      map.
+      branch-tracking converges warm- and cool-tracked chains to the same fixed
+      point for every closure.
+      **Headline (supersedes the K-numbers above): the haze IR opacity sets the
+      feedback regime.** The oscillation/bistability/142 K fixed point all
+      belong to the *lab-tholin* LW configuration: Khare (1984) k over-absorbs
+      the 300–900 cm⁻¹ thermal window 20–90× vs the observational haze
+      (`scripts/diagnose_tau_gap.py`, `figs/tau_gap.png`), over-cooling the
+      stratopause ~40 K. Calibrating the LW spectral absorptivity per unit
+      visible extinction to the observational tables (`lw_haze='obs'`, default)
+      gives +53 K one-shot (141.5→194.2 K) and a **benign** coupling: flat
+      composite map (slope ~0.1), all six chains → **~194 K stratopause** (mono
+      split 0.1 K), frozen-haze splits ≤6 K, +11 K vs the 183 K prescribed-haze
+      reference (= the remaining 2.6× visible-τ excess aloft). Lab-tholin IR
+      constants manufacture a dramatic feedback that is not there.
 - [x] Step 3 follow-up — **polydisperse microphysics**
       (`src/microphysics/{moments,coagulation,scaling_law_bimodal}.py`,
       `docs/polydisperse_scheme.md`): bimodal 2-moment log-normal scheme
@@ -245,13 +252,11 @@ precision and the BVP agrees with the master ODE to ~9% in the lower haze.
       sorting thins the haze steeply with the aggregate width σ_F (visible column
       τ 8.4 monodisperse → 6.2 at σ_F=1.2 → 1.9 at σ_F=2.0; observed τ≈8 needs
       σ_F≲1.2 — a constraint on Titan's aggregate spread;
-      `scripts/sigma_f_sweep.py`). (ii) The **frozen-haze** bistability is
-      **strongly suppressed but not eliminated**: the consistent
-      transition-state-haze test gives a converged ~8 K warm−cool split (vs 17 K
-      monodisperse), ~3–4 K at the nominal haze — the wide two-equilibria
-      behaviour is largely a single-size artifact
-      (`scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`,
-      paper Fig. 6); and the coupled system is monostable for both closures (see
-      the continuation result above). The 8-field eddy-diffusion BVP is deferred
-      (needs a relaxation solver; `bvp_bimodal.py`).
+      `scripts/sigma_f_sweep.py` — LW-independent, stands). (ii) In the
+      *lab-tholin* configuration the frozen-haze bistability is strongly
+      suppressed by polydispersity (~8 K vs 17 K mono;
+      `scripts/{bistable_states,plot_bistable,check_bimodal_converge}.py`); with
+      the obs-calibrated LW there is no robust multiplicity for either closure.
+      The 8-field eddy-diffusion BVP is deferred (needs a relaxation solver;
+      `bvp_bimodal.py`).
 - [ ] Step 4 — photochemistry coupling

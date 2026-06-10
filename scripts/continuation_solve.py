@@ -20,6 +20,7 @@ the coupled system is bistable; the same fixed point = monostable.
 Writes writing/figs/continuation_<tag>.npz (T/P/z profile + stratopause history).
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -36,8 +37,12 @@ from rt.energy_balance import radiative_equilibrium
 
 NLYR = 100
 N_ITER = 2500          # inner RT relaxation per outer pass
-ALPHA = 0.3            # outer under-relaxation
+ALPHA = float(os.environ.get("CONT_ALPHA", "0.3"))   # outer under-relaxation
+                       # (the khare-LW map was steep, |slope|>>1 -> damping; the
+                       # obs-LW map is nearly flat, slope ~0.1 -> CONT_ALPHA=1)
 TOL_FP = 1.0           # [K] fixed-point residual max|F(T)-T| to declare converged
+P_FP_MIN = 3.0         # [Pa] exclude the top-two-layer 1 Pa zig-zag (known
+                       # boundary artifact, +-7 K/day) from the fp residual
 MAX_OUTER = 25
 SIGMA_S = 1.5
 
@@ -77,7 +82,8 @@ def main():
         col = Column.from_atmosphere(atm_k, nlyr=NLYR, p_top=1.0)   # RT init = T_k
         eq, h, _ = radiative_equilibrium(col, haze, op=op, n_iter=N_ITER)
         T_star = np.interp(z, eq.z, eq.T)                            # F(T_k) on atm grid
-        fp_resid = float(np.max(np.abs(T_star - T)))
+        mask = base.pressure(z) >= P_FP_MIN
+        fp_resid = float(np.max(np.abs(T_star - T)[mask]))
         strat_in, strat_out = float(T.max()), float(T_star.max())
         hist.append((k, strat_in, strat_out, fp_resid, float(h[-1])))
         print(f"[{tag}] outer {k:2d}: strat {strat_in:6.1f} -> F(T) {strat_out:6.1f} K"

@@ -147,11 +147,13 @@ At `sigma_S=1.5, sigma_F=2.0` (K->0 profiles):
 
 - **SETTLED by the continuation solve** (`scripts/continuation_solve.py`, paper
   sec:coupling-cont): the **coupled** system T=F(haze(T)) is **monostable for
-  every closure** — all six branch-tracked chains ({mono, sf1.2, sf2.0} x
-  {warm, cool}) converge to the same fixed point (stratopause 141.7-143.1 K,
-  warm-cool <=1 K). The haze response is net stabilizing (a warm stratosphere's
-  haze admits no warm equilibrium); the frozen-haze multiplicity above does not
-  survive coupling. See `docs/step3_coupling.md` "RESOLVED" section.
+  every closure**. NOTE all the K-numbers in this Results section are the
+  LAB-THOLIN (khare) LW configuration: with the obs-calibrated LW haze
+  (`lw_haze='obs'`, default since cfa4181) the coupled fixed point is ~194 K,
+  the map is nearly flat, and no multiplicity survives for either closure — the
+  whole bistability drama was the lab-tholin regime. The sigma_F optics/tau
+  constraint above is LW-independent and stands. See `docs/step3_coupling.md`
+  "SUPERSEDED" section.
 
 ## Open parameters (need values)
 

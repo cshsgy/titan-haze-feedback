@@ -48,8 +48,8 @@ fig, ax = plt.subplots(1, 2, figsize=(11, 5.5), sharey=True)
 panel(ax[0], "monodisperse", "Monodisperse haze")
 panel(ax[1], POLY, fr"Polydisperse haze ($\sigma_F={SF}$)")
 ax[0].set_ylabel("pressure [Pa]")
-fig.suptitle("Stable equilibria of the coupled haze feedback: polydispersity "
-             "strongly suppresses, but does not eliminate, the bistability")
+fig.suptitle("Frozen-haze warm/cool relaxation (obs-calibrated LW haze): "
+             "no robust multiplicity for either closure")
 fig.tight_layout()
 out = ROOT / "writing" / "figs" / "bistable_states.png"
 fig.savefig(out, dpi=130)
